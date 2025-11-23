@@ -23,7 +23,7 @@ export default function Home() {
 
   useEffect(() => {
     // Fetch categories
-    fetch("http://127.0.0.1:8000/categories")
+    fetch("https://tech-mood-backend-production.up.railway.app/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
@@ -37,8 +37,8 @@ export default function Home() {
     setLoading(true);
     setPage(0);
     const url = selectedCategory
-      ? `http://127.0.0.1:8000/articles?category=${encodeURIComponent(selectedCategory)}`
-      : "http://127.0.0.1:8000/articles";
+      ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(selectedCategory)}`
+      : "https://tech-mood-backend-production.up.railway.app/articles";
 
     fetch(url)
       .then((res) => res.json())
@@ -61,8 +61,8 @@ export default function Home() {
     setLoadingMore(true);
     const nextPage = page + 1;
     const url = selectedCategory
-      ? `http://127.0.0.1:8000/articles/page/${nextPage}?category=${encodeURIComponent(selectedCategory)}`
-      : `http://127.0.0.1:8000/articles/page/${nextPage}`;
+      ? `https://tech-mood-backend-production.up.railway.app/articles/page/${nextPage}?category=${encodeURIComponent(selectedCategory)}`
+      : `https://tech-mood-backend-production.up.railway.app/articles/page/${nextPage}`;
 
     fetch(url)
       .then((res) => res.json())
