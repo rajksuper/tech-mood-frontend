@@ -1,6 +1,5 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 // Clean publisher name
 function getSourceName(url) {
@@ -13,13 +12,14 @@ function getSourceName(url) {
 }
 
 export default function Home() {
-  const [data, setData] = useState({ withImages: [], withoutImages: [] });
+  const [categories, setCategories] = useState([]);
+  const [featuredArticles, setFeaturedArticles] = useState([]);
+  const [listArticles, setListArticles] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     // Fetch categories
@@ -43,16 +43,22 @@ export default function Home() {
     fetch(url)
       .then((res) => res.json())
       .then((json) => {
-        setData({
-          withImages: Array.isArray(json.with_images) ? json.with_images : [],
-          withoutImages: Array.isArray(json.without_images) ? json.without_images : [],
-        });
-        setLoading(false);
-        if (json.with_images?.length < 12 && json.without_images?.length < 12) {
-          setHasMore(false);
-        } else {
-          setHasMore(true);
+        const allArticles = Array.isArray(json.articles) ? json.articles : [];
+        
+        // Split: 12 with images, 12 without
+        const withImages = allArticles.filter(a => a.image_url).slice(0, 12);
+        const withoutImages = allArticles.filter(a => !a.image_url).slice(0, 12);
+        
+        // If not enough without images, fill with remaining
+        if (withoutImages.length < 12) {
+          const remaining = allArticles.filter(a => a.image_url).slice(12, 24);
+          withoutImages.push(...remaining);
         }
+        
+        setFeaturedArticles(withImages);
+        setListArticles(withoutImages);
+        setLoading(false);
+        setHasMore(allArticles.length >= 24);
       })
       .catch(() => setLoading(false));
   };
@@ -67,47 +73,25 @@ export default function Home() {
     fetch(url)
       .then((res) => res.json())
       .then((json) => {
-        const newWithImages = Array.isArray(json.with_images) ? json.with_images : [];
-        const newWithoutImages = Array.isArray(json.without_images) ? json.without_images : [];
+        const allArticles = Array.isArray(json.articles) ? json.articles : [];
+        const newWithImages = allArticles.filter(a => a.image_url).slice(0, 12);
+        const newWithoutImages = allArticles.filter(a => !a.image_url).slice(0, 12);
 
-        setData((prev) => ({
-          withImages: [...prev.withImages, ...newWithImages],
-          withoutImages: [...prev.withoutImages, ...newWithoutImages],
-        }));
+        setFeaturedArticles(prev => [...prev, ...newWithImages]);
+        setListArticles(prev => [...prev, ...newWithoutImages]);
         setPage(nextPage);
         setLoadingMore(false);
-        if (newWithImages.length < 12 && newWithoutImages.length < 12) {
-          setHasMore(false);
-        }
+        setHasMore(allArticles.length >= 24);
       })
       .catch(() => setLoadingMore(false));
   };
 
-  // Create alternating rows: 4 with images, then 4 without images
-  const createRows = () => {
-    const rows = [];
-    const maxImageRows = Math.ceil(data.withImages.length / 4);
-    const maxTextRows = Math.ceil(data.withoutImages.length / 4);
-    const maxRows = Math.max(maxImageRows, maxTextRows);
-
-    for (let i = 0; i < maxRows; i++) {
-      const imageStart = i * 4;
-      const imageArticles = data.withImages.slice(imageStart, imageStart + 4);
-      if (imageArticles.length > 0) {
-        rows.push({ type: "image", articles: imageArticles });
-      }
-
-      const textStart = i * 4;
-      const textArticles = data.withoutImages.slice(textStart, textStart + 4);
-      if (textArticles.length > 0) {
-        rows.push({ type: "text", articles: textArticles });
-      }
-    }
-
-    return rows;
+  const getBorderColor = (sentiment) => {
+    if (sentiment === "positive") return "green";
+    if (sentiment === "negative") return "red";
+    if (sentiment === "mixed") return "#a855f7";
+    return "#e6b800";
   };
-
-  const rows = createRows();
 
   return (
     <div
@@ -118,12 +102,13 @@ export default function Home() {
         margin: "0 auto",
       }}
     >
+      {/* KEEP YOUR ORIGINAL HEADER */}
       <h1 style={{ fontSize: "32px", marginBottom: "8px" }}>Tech Mood Dashboard</h1>
       <h3 style={{ color: "#666", fontWeight: "normal", marginBottom: "20px" }}>
         Real-time sentiment analysis of technology news
       </h3>
 
-      {/* Category Filter Pills */}
+      {/* KEEP YOUR ORIGINAL CATEGORY PILLS */}
       <div
         style={{
           marginBottom: "20px",
@@ -173,31 +158,29 @@ export default function Home() {
 
       {loading && <p>Loading...</p>}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-        {rows.map((row, rowIndex) => (
+      {/* FEATURED SECTION - Horizontal Scrollable with Images */}
+      {!loading && featuredArticles.length > 0 && (
+        <>
+          <h2 style={{ fontSize: "24px", marginBottom: "16px", fontWeight: "600" }}>
+            Featured Stories
+          </h2>
           <div
-            key={rowIndex}
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "20px",
+              overflowX: "auto",
+              marginBottom: "40px",
+              paddingBottom: "10px",
             }}
           >
-            {row.articles.map((item) => {
-              const borderColor =
-                item.sentiment_label === "positive"
-                  ? "green"
-                  : item.sentiment_label === "negative"
-                  ? "red"
-                  : item.sentiment_label === "mixed"
-                  ? "#a855f7"
-                  : "#e6b800";
+            <div style={{ display: "flex", gap: "20px", width: "max-content" }}>
+              {featuredArticles.map((item) => {
+                const borderColor = getBorderColor(item.sentiment_label);
 
-              if (row.type === "image") {
                 return (
                   <div
                     key={item.id}
                     style={{
+                      width: "320px",
+                      flexShrink: 0,
                       border: `2px solid ${borderColor}`,
                       borderRadius: "12px",
                       overflow: "hidden",
@@ -237,7 +220,7 @@ export default function Home() {
                       )}
 
                       <a
-                        href={item.source_url}
+                        href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -279,12 +262,12 @@ export default function Home() {
                         }}
                       >
                         <a
-                          href={item.source_url}
+                          href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: "#0066cc", textDecoration: "none" }}
                         >
-                          {getSourceName(item.source_url)}
+                          {getSourceName(item.url)}
                         </a>
                         <span
                           style={{
@@ -302,72 +285,87 @@ export default function Home() {
                     </div>
                   </div>
                 );
-              }
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* LIST SECTION - Compact Articles without Images */}
+      {!loading && listArticles.length > 0 && (
+        <>
+          <h2 style={{ fontSize: "24px", marginBottom: "16px", fontWeight: "600" }}>
+            More Articles
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {listArticles.map((item) => {
+              const borderColor = getBorderColor(item.sentiment_label);
 
               return (
                 <div
                   key={item.id}
                   style={{
-                    border: `2px solid ${borderColor}`,
-                    borderRadius: "12px",
+                    borderLeft: `6px solid ${borderColor}`,
+                    borderRadius: "8px",
+                    padding: "16px 20px",
                     background: "white",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    padding: "16px",
+                    display: "flex",
+                    gap: "20px",
+                    alignItems: "center",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+                    transition: "all 0.2s ease",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateX(8px)";
+                    e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.12)";
+                    e.currentTarget.style.background = "#fafafa";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateX(0)";
+                    e.currentTarget.style.boxShadow = "0 2px 6px rgba(0,0,0,0.08)";
+                    e.currentTarget.style.background = "white";
                   }}
                 >
-                  {item.category && (
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        background: "#e3f2fd",
-                        color: "#1976d2",
-                        padding: "4px 8px",
-                        borderRadius: "8px",
-                        marginBottom: "8px",
-                        display: "inline-block",
-                        fontWeight: "600",
-                        marginRight: "8px",
-                      }}
-                    >
-                      {item.category}
-                    </span>
-                  )}
-
+                  {/* Colored Initial */}
                   <div
                     style={{
-                      background: borderColor,
-                      color: "white",
-                      padding: "4px 10px",
-                      borderRadius: "10px",
-                      fontSize: "10px",
-                      fontWeight: "700",
-                      textTransform: "uppercase",
-                      display: "inline-block",
-                      marginBottom: "10px",
+                      width: "60px",
+                      height: "60px",
+                      borderRadius: "6px",
+                      background: `linear-gradient(135deg, ${borderColor}20, ${borderColor}40)`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "24px",
+                      fontWeight: "bold",
+                      color: borderColor,
+                      flexShrink: 0,
                     }}
                   >
-                    {item.sentiment_label}
+                    {item.category ? item.category[0].toUpperCase() : "T"}
                   </div>
 
-                  <a
-                    href={item.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      color: "#1a0dab",
-                      textDecoration: "none",
-                      fontSize: "15px",
-                      fontWeight: "600",
-                      display: "block",
-                      marginBottom: "10px",
-                      lineHeight: "1.3",
-                      fontFamily: "Courier New, monospace",
-                    }}
-                  >
-                    {item.title}
-                  </a>
+                  {/* Content */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: "#1a0dab",
+                        textDecoration: "none",
+                        fontSize: "18px",
+                        fontWeight: "600",
+                        display: "block",
+                        marginBottom: "8px",
+                        lineHeight: "1.4",
+                        fontFamily: "Courier New, monospace",
+                      }}
+                    >
+                      {item.title}
+                    </a>
 
-                  {item.summary && (
                     <p
                       style={{
                         margin: "0 0 10px",
@@ -376,36 +374,61 @@ export default function Home() {
                         lineHeight: "1.5",
                         fontFamily: "Courier New, monospace",
                         display: "-webkit-box",
-                        WebkitLineClamp: 3,
+                        WebkitLineClamp: 2,
                         WebkitBoxOrient: "vertical",
                         overflow: "hidden",
                       }}
                     >
                       {item.summary}
                     </p>
-                  )}
 
-                  <div style={{ fontSize: "11px", color: "#666" }}>
-                    <a
-                      href={item.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: "#0066cc", textDecoration: "none" }}
-                    >
-                      {getSourceName(item.source_url)}
-                    </a>
-                    <span style={{ color: "#ccc", margin: "0 8px" }}>•</span>
-                    <span>
-                      {item.published_at ? new Date(item.published_at).toLocaleTimeString() : ""}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12px", color: "#666" }}>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          color: "#0066cc",
+                          textDecoration: "none",
+                          fontWeight: "500",
+                        }}
+                      >
+                        {getSourceName(item.url)}
+                      </a>
+                      <span style={{ color: "#ccc" }}>•</span>
+                      <span>
+                        {item.published_at
+                          ? new Date(item.published_at).toLocaleTimeString()
+                          : ""}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sentiment Badge */}
+                  <div
+                    style={{
+                      background: borderColor,
+                      color: "white",
+                      padding: "8px 16px",
+                      borderRadius: "20px",
+                      fontWeight: "600",
+                      fontSize: "12px",
+                      textTransform: "uppercase",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    {item.sentiment_label}
                   </div>
                 </div>
               );
             })}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
+      {/* KEEP YOUR ORIGINAL LOAD MORE BUTTON */}
       {hasMore && (
         <button
           onClick={loadMore}
