@@ -37,7 +37,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/categories")
+    fetch("https://tech-mood-backend-production.up.railway.app/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
@@ -48,8 +48,8 @@ export default function Home() {
 
   const calculateTotalPages = () => {
     const countUrl = selectedCategory
-      ? `http://127.0.0.1:8000/articles/count?category=${encodeURIComponent(selectedCategory)}`
-      : "http://127.0.0.1:8000/articles/count";
+      ? `https://tech-mood-backend-production.up.railway.app/articles/count?category=${encodeURIComponent(selectedCategory)}`
+      : "https://tech-mood-backend-production.up.railway.app/articles/count";
     
     fetch(countUrl)
       .then((res) => res.json())
@@ -109,12 +109,12 @@ export default function Home() {
     
     if (currentPage === 1) {
       url = selectedCategory
-        ? `http://127.0.0.1:8000/articles?category=${encodeURIComponent(selectedCategory)}`
-        : "http://127.0.0.1:8000/articles";
+        ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(selectedCategory)}`
+        : "https://tech-mood-backend-production.up.railway.app/articles";
     } else {
       url = selectedCategory
-        ? `http://127.0.0.1:8000/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
-        : `http://127.0.0.1:8000/articles/page/${pageNum}`;
+        ? `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
+        : `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}`;
     }
 
     fetch(url)
@@ -406,36 +406,21 @@ export default function Home() {
 
       {loading && <p style={{ textAlign: "center", padding: "40px" }}>Loading...</p>}
 
-      {/* FULL-WIDTH CAROUSEL - Polished */}
+      {/* FULL-WIDTH CAROUSEL */}
       {!loading && featuredArticles.length > 0 && (
-        <div style={{ 
-          position: "relative", 
-          marginBottom: "40px",
-          maxWidth: "1600px",
-          margin: "0 auto 40px auto",
-          padding: "0 20px"
-        }}>
-          {/* Carousel Container with Border & Shadow */}
+        <div style={{ position: "relative", marginBottom: "40px" }}>
+          {/* Carousel Container */}
           <div 
             style={{ 
-              width: "100%", 
+              width: "100vw", 
               height: isMobile ? "350px" : "500px", 
               position: "relative",
               overflow: "hidden",
-              background: "#000",
-              borderRadius: "12px",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-              border: `3px solid ${featuredArticles[currentSlide] ? getBorderColor(featuredArticles[currentSlide].sentiment_label) : "#666"}`,
+              background: "#000"
             }}
-            onTouchStart={(e) => {
-              handleTouchStart(e);
-              setIsHovered(true); // Pause on touch
-            }}
+            onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
-            onTouchEnd={(e) => {
-              handleTouchEnd();
-              setIsHovered(false); // Resume after touch
-            }}
+            onTouchEnd={handleTouchEnd}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
@@ -487,43 +472,39 @@ export default function Home() {
                       bottom: 0,
                       left: 0,
                       right: 0,
-                      padding: isMobile ? "24px" : "48px",
-                      background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
+                      padding: isMobile ? "20px" : "40px",
+                      background: "linear-gradient(to top, rgba(0,0,0,0.9), transparent)",
                       color: "white",
                     }}
                   >
                     <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-                      <div style={{ marginBottom: "12px" }}>
-                        <span
-                          style={{
-                            background: borderColor,
-                            color: "white",
-                            padding: isMobile ? "5px 14px" : "7px 18px",
-                            borderRadius: "20px",
-                            fontSize: isMobile ? "11px" : "13px",
-                            fontWeight: "700",
-                            textTransform: "uppercase",
-                            marginRight: "12px",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                          }}
-                        >
-                          {article.sentiment_label}
-                        </span>
-                        
-                        <span
-                          style={{
-                            background: "#e3f2fd",
-                            color: "#1976d2",
-                            padding: isMobile ? "5px 14px" : "7px 18px",
-                            borderRadius: "20px",
-                            fontSize: isMobile ? "11px" : "13px",
-                            fontWeight: "700",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                          }}
-                        >
-                          {article.category}
-                        </span>
-                      </div>
+                      <span
+                        style={{
+                          background: borderColor,
+                          color: "white",
+                          padding: isMobile ? "4px 12px" : "6px 16px",
+                          borderRadius: "20px",
+                          fontSize: isMobile ? "10px" : "12px",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                          marginRight: "12px",
+                        }}
+                      >
+                        {article.sentiment_label}
+                      </span>
+                      
+                      <span
+                        style={{
+                          background: "#e3f2fd",
+                          color: "#1976d2",
+                          padding: isMobile ? "4px 12px" : "6px 16px",
+                          borderRadius: "20px",
+                          fontSize: isMobile ? "10px" : "12px",
+                          fontWeight: "700",
+                        }}
+                      >
+                        {article.category}
+                      </span>
 
                       <a
                         href={article.source_url}
@@ -532,12 +513,11 @@ export default function Home() {
                         style={{
                           color: "white",
                           textDecoration: "none",
-                          fontSize: isMobile ? "22px" : "38px",
+                          fontSize: isMobile ? "20px" : "36px",
                           fontWeight: "700",
                           display: "block",
-                          margin: "12px 0",
+                          margin: "16px 0",
                           lineHeight: "1.2",
-                          textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
                         }}
                       >
                         {article.title}
@@ -547,20 +527,14 @@ export default function Home() {
                         style={{
                           fontSize: isMobile ? "14px" : "18px",
                           lineHeight: "1.6",
-                          marginBottom: "12px",
-                          opacity: 0.95,
-                          textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                          marginBottom: "16px",
+                          opacity: 0.9,
                         }}
                       >
                         {article.summary.substring(0, 150)}...
                       </p>
 
-                      <span style={{ 
-                        fontSize: isMobile ? "12px" : "14px", 
-                        fontWeight: "600", 
-                        opacity: 0.85,
-                        textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-                      }}>
+                      <span style={{ fontSize: isMobile ? "12px" : "14px", fontWeight: "600", opacity: 0.8 }}>
                         {getSourceName(article.source_url)}
                       </span>
                     </div>
@@ -666,108 +640,93 @@ export default function Home() {
                   <div
                     key={item.id}
                     style={{
-                      borderLeft: `4px solid ${borderColor}`,
-                      padding: "16px",
+                      borderLeft: `6px solid ${borderColor}`,
+                      borderRadius: "8px",
+                      padding: "16px 20px",
                       background: "white",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                      borderRadius: "4px",
+                      display: "flex",
+                      gap: "20px",
+                      alignItems: "center",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+                      cursor: "pointer",
                     }}
                   >
-                    {/* Row 1: Title */}
-                    <a
-                      href={item.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <div
                       style={{
-                        color: "#1a0dab",
-                        textDecoration: "none",
-                        fontSize: "18px",
-                        fontWeight: "600",
-                        display: "block",
-                        marginBottom: "10px",
-                        lineHeight: "1.4",
-                        fontFamily: "Courier New, monospace",
+                        width: "60px",
+                        height: "60px",
+                        borderRadius: "6px",
+                        background: `linear-gradient(135deg, ${borderColor}20, ${borderColor}40)`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "24px",
+                        fontWeight: "bold",
+                        color: borderColor,
+                        flexShrink: 0,
                       }}
                     >
-                      {item.title}
-                    </a>
+                      {item.category ? item.category[0].toUpperCase() : "T"}
+                    </div>
 
-                    {/* Row 2: Summary */}
-                    <p
-                      style={{
-                        margin: "0 0 12px",
-                        color: "#555",
-                        fontSize: "14px",
-                        lineHeight: "1.6",
-                        fontFamily: "Courier New, monospace",
-                      }}
-                    >
-                      {item.summary}
-                    </p>
-
-                    {/* Row 3: Source + Category */}
-                    <div style={{ marginBottom: "10px" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <a
                         href={item.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          color: "#0066cc",
+                          color: "#1a0dab",
                           textDecoration: "none",
-                          fontSize: "13px",
-                          fontWeight: "500",
+                          fontSize: "18px",
+                          fontWeight: "600",
+                          display: "block",
+                          marginBottom: "8px",
+                          lineHeight: "1.4",
                         }}
                       >
-                        {getSourceName(item.source_url)}
+                        {item.title}
                       </a>
-                      {item.category && (
-                        <span style={{
-                          marginLeft: "10px",
-                          fontSize: "11px",
-                          color: "#666",
-                          background: "#f0f0f0",
-                          padding: "2px 8px",
-                          borderRadius: "4px",
-                        }}>
-                          {item.category}
+
+                      <p
+                        style={{
+                          margin: "0 0 10px",
+                          color: "#555",
+                          fontSize: "14px",
+                          lineHeight: "1.5",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {item.summary}
+                      </p>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12px", color: "#666" }}>
+                        <span style={{ color: "#0066cc", fontWeight: "500" }}>
+                          {getSourceName(item.source_url)}
                         </span>
-                      )}
+                        <span style={{ color: "#ccc" }}>•</span>
+                        <span>
+                          {item.published_at ? new Date(item.published_at).toLocaleTimeString() : ""}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Row 4: Timestamp (LEFT) and Sentiment (RIGHT) */}
-                    <div style={{ 
-                      display: "flex", 
-                      justifyContent: "space-between", 
-                      alignItems: "center",
-                      fontSize: "12px",
-                    }}>
-                      {/* LEFT: Timestamp */}
-                      <span style={{ color: "#666" }}>
-                        {item.published_at
-                          ? new Date(item.published_at).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })
-                          : ""}
-                      </span>
-
-                      {/* RIGHT: Sentiment Badge */}
-                      <span
-                        style={{
-                          background: borderColor,
-                          color: "white",
-                          padding: "4px 12px",
-                          borderRadius: "12px",
-                          fontWeight: "600",
-                          fontSize: "11px",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {item.sentiment_label}
-                      </span>
+                    <div
+                      style={{
+                        background: borderColor,
+                        color: "white",
+                        padding: "8px 16px",
+                        borderRadius: "20px",
+                        fontWeight: "600",
+                        fontSize: "12px",
+                        textTransform: "uppercase",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {item.sentiment_label}
                     </div>
                   </div>
                 );
