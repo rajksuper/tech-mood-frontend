@@ -105,18 +105,20 @@ export default function Home() {
     }
   }, [loading]);
 
-  // Auto-play carousel every 5 seconds (pause on hover)
+  // Auto-play carousel (10 seconds on mobile, 5 seconds on desktop, pause on hover)
   useEffect(() => {
     if (isHovered) return; // Don't auto-play when mouse is over carousel
 
     if (!featuredArticles.length) return;
 
+    const slideInterval = isMobile ? 10000 : 5000;
+    
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % featuredArticles.length);
-    }, 5000);
+    }, slideInterval);
 
     return () => clearInterval(interval); // Cleanup on unmount
-  }, [featuredArticles.length, isHovered]);
+  }, [featuredArticles.length, isHovered, isMobile]);
 
   // Keyboard navigation (arrow keys)
   useEffect(() => {
@@ -337,7 +339,10 @@ export default function Home() {
         >
           {/* ALL */}
           <div
-            onClick={() => setSelectedCategory(null)}
+            onClick={() => {
+              setSelectedCategory(null);
+              setCurrentPage(1);
+            }}
             style={{
               padding: isMobile ? "6px 10px" : "8px 16px",
               fontSize: isMobile ? "12px" : "14px",
@@ -366,11 +371,13 @@ export default function Home() {
           </div>
 
           {categories
-            .filter((cat) => cat !== "General Tech")
             .map((cat) => (
               <div
                 key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  setCurrentPage(1);
+                }}
                 style={{
                   padding: isMobile ? "6px 10px" : "8px 16px",
                   fontSize: isMobile ? "12px" : "14px",
@@ -400,7 +407,8 @@ export default function Home() {
             ))}
         </div>
 
-        {/* GOOGLE-STYLE PAGINATION (Top) */}
+        {/* GOOGLE-STYLE PAGINATION (Top) - Hidden on mobile */}
+        {!isMobile && (
         <div
           style={{
             display: "flex",
@@ -409,7 +417,7 @@ export default function Home() {
             gap: "15px",
             marginBottom: "20px",
             fontSize: "14px",
-            color: isMobile ? "#aaaaaa" : "#666",
+            color: "#666",
           }}
         >
           {currentPage > 1 && (
@@ -534,6 +542,7 @@ export default function Home() {
             </a>
           )}
         </div>
+        )}
       </div>
 
       {loading && (
@@ -1120,9 +1129,9 @@ export default function Home() {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            gap: "20px",
+            gap: "15px",
             margin: "40px 0",
-            fontSize: "18px",
+            fontSize: "14px",
             color: isMobile ? "#aaaaaa" : "#666",
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
 
@@ -1139,7 +1148,6 @@ export default function Home() {
                 color: isMobile ? "#4da3ff" : "#1a0dab",
                 textDecoration: "none",
                 cursor: "pointer",
-                fontWeight: "500",
               }}
             >
               &lt; Previous
@@ -1185,7 +1193,6 @@ export default function Home() {
                     key={i}
                     style={{
                       color: isMobile ? "#ffffff" : "#000",
-                      fontSize: "19px",
                     }}
                   >
                     {i}
@@ -1250,7 +1257,6 @@ export default function Home() {
                 color: isMobile ? "#4da3ff" : "#1a0dab",
                 textDecoration: "none",
                 cursor: "pointer",
-                fontWeight: "500",
               }}
             >
               Next &gt;
