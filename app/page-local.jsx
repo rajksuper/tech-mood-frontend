@@ -37,7 +37,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch("https://tech-mood-backend-production.up.railway.app/categories")
+    fetch("http://127.0.0.1:8000/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
@@ -48,8 +48,8 @@ export default function Home() {
 
   const calculateTotalPages = () => {
     const countUrl = selectedCategory
-      ? `https://tech-mood-backend-production.up.railway.app/articles/count?category=${encodeURIComponent(selectedCategory)}`
-      : "https://tech-mood-backend-production.up.railway.app/articles/count";
+      ? `http://127.0.0.1:8000/articles/count?category=${encodeURIComponent(selectedCategory)}`
+      : "http://127.0.0.1:8000/articles/count";
     
     fetch(countUrl)
       .then((res) => res.json())
@@ -109,12 +109,12 @@ export default function Home() {
     
     if (currentPage === 1) {
       url = selectedCategory
-        ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(selectedCategory)}`
-        : "https://tech-mood-backend-production.up.railway.app/articles";
+        ? `http://127.0.0.1:8000/articles?category=${encodeURIComponent(selectedCategory)}`
+        : "http://127.0.0.1:8000/articles";
     } else {
       url = selectedCategory
-        ? `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
-        : `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}`;
+        ? `http://127.0.0.1:8000/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
+        : `http://127.0.0.1:8000/articles/page/${pageNum}`;
     }
 
     fetch(url)
