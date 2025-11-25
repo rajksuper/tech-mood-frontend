@@ -406,35 +406,34 @@ export default function Home() {
 
       {loading && <p style={{ textAlign: "center", padding: "40px" }}>Loading...</p>}
 
-      {/* FULL-WIDTH CAROUSEL - Polished */}
+
+      {/* CAROUSEL - Desktop: Text Overlay, Mobile: Clean Image + Dark Section */}
       {!loading && featuredArticles.length > 0 && (
         <div style={{ 
           position: "relative", 
           marginBottom: "40px",
-          maxWidth: "1600px",
+          maxWidth: isMobile ? "100%" : "1600px",
           margin: "0 auto 40px auto",
-          padding: "0 20px"
+          padding: isMobile ? "0 10px" : "0 20px"
         }}>
-          {/* Carousel Container with Border & Shadow */}
           <div 
             style={{ 
               width: "100%", 
-              height: isMobile ? "350px" : "500px", 
               position: "relative",
               overflow: "hidden",
-              background: "#000",
+              background: "#1a1a1a",
               borderRadius: "12px",
               boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
               border: `3px solid ${featuredArticles[currentSlide] ? getBorderColor(featuredArticles[currentSlide].sentiment_label) : "#666"}`,
             }}
             onTouchStart={(e) => {
               handleTouchStart(e);
-              setIsHovered(true); // Pause on touch
+              setIsHovered(true);
             }}
             onTouchMove={handleTouchMove}
             onTouchEnd={(e) => {
               handleTouchEnd();
-              setIsHovered(false); // Resume after touch
+              setIsHovered(false);
             }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -447,184 +446,317 @@ export default function Home() {
                 <div
                   key={article.id}
                   style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
                     opacity: isActive ? 1 : 0,
                     transition: "opacity 0.5s ease-in-out",
                     pointerEvents: isActive ? "auto" : "none",
                   }}
                 >
-                  {/* Background Image */}
-                  <img
-                    src={article.image_url}
-                    alt="slide"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      objectPosition: "center",
-                      background: "#000",
-                    }}
-                  />
-                  
-                  {/* Dark overlay */}
-                  <div style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: "rgba(0,0,0,0.4)",
-                  }} />
-                  
-                  {/* Content Overlay */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      padding: isMobile ? "24px" : "48px",
-                      background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
-                      color: "white",
-                    }}
-                  >
-                    <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-                      <div style={{ marginBottom: "12px" }}>
-                        <span
+                  {isMobile ? (
+                    <>
+                      <div style={{ 
+                        position: "relative",
+                        width: "100%",
+                        height: "300px",
+                        overflow: "hidden"
+                      }}>
+                        <img
+                          src={article.image_url}
+                          alt="slide"
                           style={{
-                            background: borderColor,
-                            color: "white",
-                            padding: isMobile ? "5px 14px" : "7px 18px",
-                            borderRadius: "20px",
-                            fontSize: isMobile ? "11px" : "13px",
-                            fontWeight: "700",
-                            textTransform: "uppercase",
-                            marginRight: "12px",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
                           }}
-                        >
-                          {article.sentiment_label}
-                        </span>
-                        
-                        <span
-                          style={{
-                            background: "#e3f2fd",
-                            color: "#1976d2",
-                            padding: isMobile ? "5px 14px" : "7px 18px",
-                            borderRadius: "20px",
-                            fontSize: isMobile ? "11px" : "13px",
-                            fontWeight: "700",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                          }}
-                        >
-                          {article.category}
-                        </span>
+                        />
                       </div>
 
-                      <a
-                        href={article.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          color: "white",
-                          textDecoration: "none",
-                          fontSize: isMobile ? "22px" : "38px",
-                          fontWeight: "700",
-                          display: "block",
-                          margin: "12px 0",
-                          lineHeight: "1.2",
-                          textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
-                        }}
-                      >
-                        {article.title}
-                      </a>
-
-                      <p
-                        style={{
-                          fontSize: isMobile ? "14px" : "18px",
-                          lineHeight: "1.6",
-                          marginBottom: "12px",
-                          opacity: 0.95,
-                          textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-                        }}
-                      >
-                        {article.summary.substring(0, 150)}...
-                      </p>
-
-                      <span style={{ 
-                        fontSize: isMobile ? "12px" : "14px", 
-                        fontWeight: "600", 
-                        opacity: 0.85,
-                        textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                      <div style={{
+                        background: "#1a1a1a",
+                        padding: "20px",
+                        color: "white"
                       }}>
-                        {getSourceName(article.source_url)}
-                      </span>
-                    </div>
-                  </div>
+                        <a
+                          href={article.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: "white",
+                            textDecoration: "none",
+                            fontSize: "20px",
+                            fontWeight: "700",
+                            display: "block",
+                            marginBottom: "12px",
+                            lineHeight: "1.3",
+                            fontFamily: "Courier New, monospace",
+                          }}
+                        >
+                          {article.title}
+                        </a>
+
+                        <p style={{
+                          color: "#aaa",
+                          fontSize: "14px",
+                          lineHeight: "1.6",
+                          marginBottom: "14px",
+                          fontFamily: "Courier New, monospace",
+                        }}>
+                          {article.summary.substring(0, 120)}...
+                        </p>
+
+                        <div style={{ marginBottom: "12px" }}>
+                          <span style={{
+                            color: "#4a9eff",
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            marginRight: "10px"
+                          }}>
+                            {getSourceName(article.source_url)}
+                          </span>
+                          <span style={{
+                            background: "#2d2d2d",
+                            color: "#4a9eff",
+                            padding: "4px 10px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: "600"
+                          }}>
+                            {article.category}
+                          </span>
+                        </div>
+
+                        <div style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontSize: "12px"
+                        }}>
+                          <span style={{ color: "#888" }}>
+                            {article.published_at
+                              ? new Date(article.published_at).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : ""}
+                          </span>
+
+                          <span style={{
+                            background: borderColor,
+                            color: "white",
+                            padding: "5px 14px",
+                            borderRadius: "12px",
+                            fontWeight: "700",
+                            fontSize: "11px",
+                            textTransform: "uppercase"
+                          }}>
+                            {article.sentiment_label}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ 
+                        position: "relative",
+                        width: "100%",
+                        height: "500px"
+                      }}>
+                        <img
+                          src={article.image_url}
+                          alt="slide"
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "contain",
+                            objectPosition: "center",
+                            background: "#000",
+                          }}
+                        />
+                        
+                        <div style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: "rgba(0,0,0,0.4)",
+                        }} />
+
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            padding: "48px",
+                            background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
+                            color: "white",
+                          }}
+                        >
+                          <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+                            <div style={{ marginBottom: "12px" }}>
+                              <span
+                                style={{
+                                  background: borderColor,
+                                  color: "white",
+                                  padding: "7px 18px",
+                                  borderRadius: "20px",
+                                  fontSize: "13px",
+                                  fontWeight: "700",
+                                  textTransform: "uppercase",
+                                  marginRight: "12px",
+                                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                                }}
+                              >
+                                {article.sentiment_label}
+                              </span>
+                              
+                              <span
+                                style={{
+                                  background: "#e3f2fd",
+                                  color: "#1976d2",
+                                  padding: "7px 18px",
+                                  borderRadius: "20px",
+                                  fontSize: "13px",
+                                  fontWeight: "700",
+                                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                                }}
+                              >
+                                {article.category}
+                              </span>
+                            </div>
+
+                            <a
+                              href={article.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "white",
+                                textDecoration: "none",
+                                fontSize: "38px",
+                                fontWeight: "700",
+                                display: "block",
+                                margin: "12px 0",
+                                lineHeight: "1.2",
+                                textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+                              }}
+                            >
+                              {article.title}
+                            </a>
+
+                            <p
+                              style={{
+                                fontSize: "18px",
+                                lineHeight: "1.6",
+                                marginBottom: "12px",
+                                opacity: 0.95,
+                                textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                              }}
+                            >
+                              {article.summary.substring(0, 150)}...
+                            </p>
+
+                            <span style={{ 
+                              fontSize: "14px", 
+                              fontWeight: "600", 
+                              opacity: 0.85,
+                              textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                            }}>
+                              {getSourceName(article.source_url)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}
+
+            {!isMobile && (
+              <>
+                <button
+                  onClick={prevSlide}
+                  style={{
+                    position: "absolute",
+                    left: "20px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "rgba(0,0,0,0.7)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "60px",
+                    height: "60px",
+                    fontSize: "30px",
+                    cursor: "pointer",
+                    zIndex: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ‹
+                </button>
+
+                <button
+                  onClick={nextSlide}
+                  style={{
+                    position: "absolute",
+                    right: "20px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "rgba(0,0,0,0.7)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "60px",
+                    height: "60px",
+                    fontSize: "30px",
+                    cursor: "pointer",
+                    zIndex: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ›
+                </button>
+              </>
+            )}
+
+            <div
+              style={{
+                position: "absolute",
+                bottom: isMobile ? "100px" : "20px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                display: "flex",
+                gap: "8px",
+                zIndex: 10,
+              }}
+            >
+              {featuredArticles.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    border: "none",
+                    background: index === currentSlide ? "white" : "rgba(255,255,255,0.5)",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                />
+              ))}
+            </div>
           </div>
-
-          {/* LEFT ARROW */}
-          <button
-            onClick={prevSlide}
-            style={{
-              position: "absolute",
-              left: isMobile ? "10px" : "20px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "rgba(0,0,0,0.7)",
-              color: "white",
-              border: "none",
-              borderRadius: "50%",
-              width: isMobile ? "40px" : "60px",
-              height: isMobile ? "40px" : "60px",
-              fontSize: isMobile ? "20px" : "30px",
-              cursor: "pointer",
-              zIndex: 10,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            ‹
-          </button>
-
-          {/* RIGHT ARROW */}
-          <button
-            onClick={nextSlide}
-            style={{
-              position: "absolute",
-              right: isMobile ? "10px" : "20px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "rgba(0,0,0,0.7)",
-              color: "white",
-              border: "none",
-              borderRadius: "50%",
-              width: isMobile ? "40px" : "60px",
-              height: isMobile ? "40px" : "60px",
-              fontSize: isMobile ? "20px" : "30px",
-              cursor: "pointer",
-              zIndex: 10,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            ›
-          </button>
-
-          {/* DOTS INDICATOR */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: "20px",
+        </div>
+      )}
               left: "50%",
               transform: "translateX(-50%)",
               display: "flex",
