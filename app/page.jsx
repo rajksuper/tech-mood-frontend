@@ -446,21 +446,23 @@ export default function Home() {
                 <div
                   key={article.id}
                   style={{
-                    position: isActive ? "relative" : "absolute",
+                    position: index === 0 ? "relative" : "absolute",
                     top: 0,
                     left: 0,
                     width: "100%",
                     opacity: isActive ? 1 : 0,
                     transition: "opacity 0.5s ease-in-out",
                     pointerEvents: isActive ? "auto" : "none",
+                    visibility: isActive ? "visible" : "hidden",
                   }}
                 >
                   {isMobile ? (
                     <>
+                      {/* Mobile: Image with dots overlay */}
                       <div style={{ 
                         position: "relative",
                         width: "100%",
-                        height: "300px",
+                        height: "350px",
                         overflow: "hidden"
                       }}>
                         <img
@@ -472,12 +474,43 @@ export default function Home() {
                             objectFit: "cover",
                           }}
                         />
+                        
+                        {/* Dots overlay on image */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: "15px",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            display: "flex",
+                            gap: "8px",
+                            zIndex: 10,
+                          }}
+                        >
+                          {featuredArticles.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setCurrentSlide(idx)}
+                              style={{
+                                width: "8px",
+                                height: "8px",
+                                borderRadius: "50%",
+                                border: "none",
+                                background: idx === currentSlide ? "white" : "rgba(255,255,255,0.5)",
+                                cursor: "pointer",
+                                padding: 0,
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
 
+                      {/* Dark text section - fixed height */}
                       <div style={{
                         background: "#1a1a1a",
                         padding: "20px",
-                        color: "white"
+                        color: "white",
+                        minHeight: "200px"
                       }}>
                         <a
                           href={article.source_url}
@@ -486,10 +519,10 @@ export default function Home() {
                           style={{
                             color: "white",
                             textDecoration: "none",
-                            fontSize: "20px",
+                            fontSize: "18px",
                             fontWeight: "700",
                             display: "block",
-                            marginBottom: "12px",
+                            marginBottom: "10px",
                             lineHeight: "1.3",
                             fontFamily: "Courier New, monospace",
                           }}
@@ -499,18 +532,18 @@ export default function Home() {
 
                         <p style={{
                           color: "#aaa",
-                          fontSize: "14px",
-                          lineHeight: "1.6",
-                          marginBottom: "14px",
+                          fontSize: "13px",
+                          lineHeight: "1.5",
+                          marginBottom: "12px",
                           fontFamily: "Courier New, monospace",
                         }}>
-                          {article.summary.substring(0, 120)}...
+                          {article.summary.substring(0, 100)}...
                         </p>
 
-                        <div style={{ marginBottom: "12px" }}>
+                        <div style={{ marginBottom: "10px" }}>
                           <span style={{
                             color: "#4a9eff",
-                            fontSize: "13px",
+                            fontSize: "12px",
                             fontWeight: "600",
                             marginRight: "10px"
                           }}>
@@ -519,9 +552,9 @@ export default function Home() {
                           <span style={{
                             background: "#2d2d2d",
                             color: "#4a9eff",
-                            padding: "4px 10px",
-                            borderRadius: "6px",
-                            fontSize: "11px",
+                            padding: "3px 8px",
+                            borderRadius: "4px",
+                            fontSize: "10px",
                             fontWeight: "600"
                           }}>
                             {article.category}
@@ -532,14 +565,13 @@ export default function Home() {
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
-                          fontSize: "12px"
+                          fontSize: "11px"
                         }}>
                           <span style={{ color: "#888" }}>
                             {article.published_at
                               ? new Date(article.published_at).toLocaleString('en-US', {
                                   month: 'short',
                                   day: 'numeric',
-                                  year: 'numeric',
                                   hour: '2-digit',
                                   minute: '2-digit'
                                 })
@@ -549,10 +581,10 @@ export default function Home() {
                           <span style={{
                             background: borderColor,
                             color: "white",
-                            padding: "5px 14px",
-                            borderRadius: "12px",
+                            padding: "4px 12px",
+                            borderRadius: "10px",
                             fontWeight: "700",
-                            fontSize: "11px",
+                            fontSize: "10px",
                             textTransform: "uppercase"
                           }}>
                             {article.sentiment_label}
@@ -728,35 +760,37 @@ export default function Home() {
                 >
                   ›
                 </button>
+
+                {/* Desktop dots at bottom */}
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "20px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    display: "flex",
+                    gap: "8px",
+                    zIndex: 10,
+                  }}
+                >
+                  {featuredArticles.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentSlide(index)}
+                      style={{
+                        width: "10px",
+                        height: "10px",
+                        borderRadius: "50%",
+                        border: "none",
+                        background: index === currentSlide ? "white" : "rgba(255,255,255,0.5)",
+                        cursor: "pointer",
+                        padding: 0,
+                      }}
+                    />
+                  ))}
+                </div>
               </>
             )}
-
-            <div
-              style={{
-                position: "absolute",
-                bottom: isMobile ? "100px" : "20px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                display: "flex",
-                gap: "8px",
-                zIndex: 10,
-              }}
-            >
-              {featuredArticles.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentSlide(index)}
-                  style={{
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "50%",
-                    border: "none",
-                    background: index === currentSlide ? "white" : "rgba(255,255,255,0.5)",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                />
-              ))}
             </div>
           </div>
         </div>
