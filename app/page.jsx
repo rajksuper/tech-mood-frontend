@@ -23,12 +23,39 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1); // Will be calculated dynamically
   const [isMobile, setIsMobile] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false); // Track if component has mounted
   const [isHovered, setIsHovered] = useState(false);
   const scrollPositionRef = useRef(0);
   const isTopPaginationRef = useRef(false);
 
-  // Detect mobile screen
+  // Mark component as mounted and inject mobile styles (for hydration safety)
   useEffect(() => {
+    setHasMounted(true);
+    
+    // Inject mobile dark background styles
+    const style = document.createElement('style');
+    style.id = 'mobile-dark-bg';
+    style.textContent = `
+      @media (max-width: 768px) {
+        html, body, #__next {
+          background: #0d0d0d !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      const existingStyle = document.getElementById('mobile-dark-bg');
+      if (existingStyle) existingStyle.remove();
+    };
+  }, []);
+
+  // Detect mobile screen - only after mount to avoid hydration mismatch
+  useEffect(() => {
+    if (!hasMounted) return;
+    
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
     };
@@ -36,7 +63,7 @@ export default function Home() {
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  }, [hasMounted]);
 
   useEffect(() => {
     fetch("https://tech-mood-backend-production.up.railway.app/categories")
@@ -262,20 +289,11 @@ export default function Home() {
     }
   };
 
-  <style jsx global>{`
-  @media (max-width: 768px) {
-    html, body, #__next {
-      background: #0d0d0d !important;
-    }
-  }
-`}</style>
-
   return (
-    
     <div
       style={{
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-
+        minHeight: isMobile ? "100vh" : "auto",
         background: isMobile ? "#0d0d0d" : "white",
         color: isMobile ? "#e0e0e0" : "inherit",
       }}
