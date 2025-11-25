@@ -262,20 +262,20 @@ export default function Home() {
     }
   };
 
- return (
-  <>
-    {/* Mobile full-black background */}
-    <style jsx global>{`
-      @media (max-width: 768px) {
-        html, body, #__next {
-          background: #0d0d0d !important;
-        }
-      }
-    `}</style>
+  <style jsx global>{`
+  @media (max-width: 768px) {
+    html, body, #__next {
+      background: #0d0d0d !important;
+    }
+  }
+`}</style>
 
+  return (
+    
     <div
       style={{
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+
         background: isMobile ? "#0d0d0d" : "white",
         color: isMobile ? "#e0e0e0" : "inherit",
       }}
@@ -290,22 +290,20 @@ export default function Home() {
         >
           Tech Mood Dashboard
         </h1>
-
-        <h3
-          style={{
-            color: isMobile ? "#bbbbbb" : "#666",
-            fontWeight: "normal",
-            marginBottom: "12px",
-            fontSize: isMobile ? "12px" : "16px",
-            lineHeight: "1.2",
-            whiteSpace: isMobile ? "nowrap" : "normal",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          Real-time sentiment analysis of technology news
-        </h3>
-
+       <h3
+  style={{
+    color: isMobile ? "#bbbbbb" : "#666",
+    fontWeight: "normal",
+    marginBottom: "12px",
+    fontSize: isMobile ? "12px" : "16px",
+    lineHeight: "1.2",
+    whiteSpace: isMobile ? "nowrap" : "normal",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  }}
+>
+  Real-time sentiment analysis of technology news
+</h3>
 
 
         {/* CATEGORY PILLS / MOBILE RECTANGLES */}
