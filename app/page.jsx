@@ -126,10 +126,37 @@ export default function Home() {
       .catch(() => setTotalPages(1));
   };
 
+  // Prefetch cache for faster page loads
+  const [pageCache, setPageCache] = useState({});
+
   useEffect(() => {
     loadArticles();
     calculateTotalPages();
   }, [selectedCategory, currentPage]);
+
+  // Prefetch next page after current page loads
+  useEffect(() => {
+    if (!loading && currentPage < totalPages) {
+      const nextPageNum = currentPage;
+      const cacheKey = `${selectedCategory || 'all'}-${nextPageNum}`;
+      
+      // Only prefetch if not already cached
+      if (!pageCache[cacheKey]) {
+        const url = selectedCategory
+          ? `https://tech-mood-backend-production.up.railway.app/articles/page/${nextPageNum}?category=${encodeURIComponent(selectedCategory)}`
+          : `https://tech-mood-backend-production.up.railway.app/articles/page/${nextPageNum}`;
+        
+        fetch(url)
+          .then((res) => res.json())
+          .then((json) => {
+            const articles = Array.isArray(json.articles) ? json.articles : [];
+            setPageCache(prev => ({ ...prev, [cacheKey]: articles }));
+            console.log(`Prefetched page ${currentPage + 1}`);
+          })
+          .catch(() => {});
+      }
+    }
+  }, [loading, currentPage, totalPages, selectedCategory]);
 
   // Restore scroll position after loading
   useEffect(() => {
@@ -168,10 +195,21 @@ export default function Home() {
   }, [featuredArticles.length]);
 
   const loadArticles = () => {
-    setLoading(true);
     setCurrentSlide(0);
 
     const pageNum = currentPage - 1;
+    const cacheKey = `${selectedCategory || 'all'}-${pageNum}`;
+
+    // Check if we have cached data
+    if (pageCache[cacheKey]) {
+      console.log(`Using cached page ${currentPage}`);
+      const allArticles = pageCache[cacheKey];
+      processArticles(allArticles);
+      return;
+    }
+
+    // No cache, fetch from API
+    setLoading(true);
     let url;
 
     if (currentPage === 1) {
@@ -189,25 +227,38 @@ export default function Home() {
       .then((json) => {
         const allArticles = Array.isArray(json.articles) ? json.articles : [];
         
-        // Sort by published_at DESC (newest first)
-        const sorted = allArticles.sort((a, b) => 
-          new Date(b.published_at) - new Date(a.published_at)
-        );
-
-        // Separate: articles with images vs without
-        const withImages = sorted.filter((a) => a.image_url);
-        const withoutImages = sorted.filter((a) => !a.image_url);
-
-        // Take first 12 of each (newest), then shuffle for display variety
-        const top12Images = withImages.slice(0, 12).sort(() => Math.random() - 0.5);
-        const top12Text = withoutImages.slice(0, 12).sort(() => Math.random() - 0.5);
-
-        setFeaturedArticles(top12Images);
-        setListArticles(top12Text);
-        setLoading(false);
+        // Cache this page
+        setPageCache(prev => ({ ...prev, [cacheKey]: allArticles }));
+        
+        processArticles(allArticles);
       })
       .catch(() => setLoading(false));
   };
+
+  // Process and display articles
+  const processArticles = (allArticles) => {
+    // Sort by published_at DESC (newest first)
+    const sorted = allArticles.sort((a, b) => 
+      new Date(b.published_at) - new Date(a.published_at)
+    );
+
+    // Separate: articles with images vs without
+    const withImages = sorted.filter((a) => a.image_url);
+    const withoutImages = sorted.filter((a) => !a.image_url);
+
+    // Take first 12 of each (newest), then shuffle for display variety
+    const top12Images = withImages.slice(0, 12).sort(() => Math.random() - 0.5);
+    const top12Text = withoutImages.slice(0, 12).sort(() => Math.random() - 0.5);
+
+    setFeaturedArticles(top12Images);
+    setListArticles(top12Text);
+    setLoading(false);
+  };
+
+  // Clear cache when category changes
+  useEffect(() => {
+    setPageCache({});
+  }, [selectedCategory]);
 
   const goToPageTop = (pageNum) => {
     scrollPositionRef.current = window.scrollY;
