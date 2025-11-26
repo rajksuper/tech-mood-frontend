@@ -27,6 +27,52 @@ export default function Home() {
   const [isHovered, setIsHovered] = useState(false);
   const scrollPositionRef = useRef(0);
   const isTopPaginationRef = useRef(false);
+  
+  // Read & Save functionality
+  const [readArticles, setReadArticles] = useState([]);
+  const [savedArticles, setSavedArticles] = useState([]);
+  const [showSavedDropdown, setShowSavedDropdown] = useState(false);
+
+  // Load read/saved from localStorage on mount
+  useEffect(() => {
+    const storedRead = localStorage.getItem('readArticles');
+    const storedSaved = localStorage.getItem('savedArticles');
+    if (storedRead) setReadArticles(JSON.parse(storedRead));
+    if (storedSaved) setSavedArticles(JSON.parse(storedSaved));
+  }, []);
+
+  // Mark article as read (hides from feed)
+  const markAsRead = (article) => {
+    const newRead = [...readArticles, article.id];
+    setReadArticles(newRead);
+    localStorage.setItem('readArticles', JSON.stringify(newRead));
+  };
+
+  // Save article (hides from feed + saves for later)
+  const saveArticle = (article) => {
+    const newRead = [...readArticles, article.id];
+    setReadArticles(newRead);
+    localStorage.setItem('readArticles', JSON.stringify(newRead));
+    
+    // Add full article to saved (if not already saved)
+    if (!savedArticles.find(a => a.id === article.id)) {
+      const newSaved = [...savedArticles, article];
+      setSavedArticles(newSaved);
+      localStorage.setItem('savedArticles', JSON.stringify(newSaved));
+    }
+  };
+
+  // Remove from saved
+  const removeFromSaved = (articleId) => {
+    const newSaved = savedArticles.filter(a => a.id !== articleId);
+    setSavedArticles(newSaved);
+    localStorage.setItem('savedArticles', JSON.stringify(newSaved));
+  };
+
+  // Filter out read articles
+  const filterReadArticles = (articles) => {
+    return articles.filter(a => !readArticles.includes(a.id));
+  };
 
   // Mark component as mounted and inject mobile styles (for hydration safety)
   useEffect(() => {
@@ -302,29 +348,164 @@ export default function Home() {
     >
       {/* HEADER */}
       <div style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
-        <h1
-          style={{
-            fontSize: isMobile ? "22px" : "32px",
-            marginBottom: "8px",
-          }}
-        >
-          Tech Mood Dashboard
-        </h1>
-       <h3
-  style={{
-    color: isMobile ? "#bbbbbb" : "#666",
-    fontWeight: "normal",
-    marginBottom: "12px",
-    fontSize: isMobile ? "12px" : "16px",
-    lineHeight: "1.2",
-    whiteSpace: isMobile ? "nowrap" : "normal",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  }}
->
-  Real-time sentiment analysis of technology news
-</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <h1
+              style={{
+                fontSize: isMobile ? "22px" : "32px",
+                marginBottom: "8px",
+              }}
+            >
+              Tech Mood Dashboard
+            </h1>
+            <h3
+              style={{
+                color: isMobile ? "#bbbbbb" : "#666",
+                fontWeight: "normal",
+                marginBottom: "12px",
+                fontSize: isMobile ? "12px" : "16px",
+                lineHeight: "1.2",
+                whiteSpace: isMobile ? "nowrap" : "normal",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              Real-time sentiment analysis of technology news
+            </h3>
+          </div>
 
+          {/* SAVED ICON */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowSavedDropdown(!showSavedDropdown)}
+              style={{
+                background: isMobile ? "#2a2a2a" : "#f0f0f0",
+                border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "14px",
+                color: isMobile ? "#e0e0e0" : "#333",
+              }}
+            >
+              🔖 <span style={{ fontWeight: "600" }}>{savedArticles.length}</span>
+            </button>
+
+            {/* SAVED DROPDOWN */}
+            {showSavedDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "45px",
+                  right: "0",
+                  width: isMobile ? "300px" : "400px",
+                  maxHeight: "500px",
+                  overflowY: "auto",
+                  background: isMobile ? "#1a1a1a" : "white",
+                  border: isMobile ? "1px solid #333" : "1px solid #ddd",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                  zIndex: 1000,
+                }}
+              >
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderBottom: isMobile ? "1px solid #333" : "1px solid #eee",
+                    fontWeight: "600",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span>Saved Articles ({savedArticles.length})</span>
+                  <button
+                    onClick={() => setShowSavedDropdown(false)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      fontSize: "18px",
+                      cursor: "pointer",
+                      color: isMobile ? "#aaa" : "#666",
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {savedArticles.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "30px",
+                      textAlign: "center",
+                      color: isMobile ? "#888" : "#999",
+                    }}
+                  >
+                    No saved articles yet
+                  </div>
+                ) : (
+                  savedArticles.map((article) => (
+                    <div
+                      key={article.id}
+                      style={{
+                        padding: "12px 16px",
+                        borderBottom: isMobile ? "1px solid #333" : "1px solid #eee",
+                        display: "flex",
+                        gap: "10px",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <button
+                        onClick={() => removeFromSaved(article.id)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          fontSize: "14px",
+                          cursor: "pointer",
+                          color: isMobile ? "#ff6b6b" : "#dc3545",
+                          padding: "0",
+                          marginTop: "2px",
+                        }}
+                        title="Remove from saved"
+                      >
+                        ✕
+                      </button>
+                      <div style={{ flex: 1 }}>
+                        <a
+                          href={article.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: isMobile ? "#4da3ff" : "#0066cc",
+                            textDecoration: "none",
+                            fontSize: "13px",
+                            fontWeight: "500",
+                            lineHeight: "1.4",
+                            display: "block",
+                          }}
+                        >
+                          {article.title}
+                        </a>
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: isMobile ? "#888" : "#999",
+                            marginTop: "4px",
+                          }}
+                        >
+                          {getSourceName(article.source_url)} • {article.category}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* CATEGORY PILLS / MOBILE RECTANGLES */}
         <div
@@ -558,7 +739,7 @@ export default function Home() {
       )}
 
       {/* CAROUSEL - Desktop: Text Overlay, Mobile: Clean Image + Dark Section */}
-      {!loading && featuredArticles.length > 0 && (
+      {!loading && filterReadArticles(featuredArticles).length > 0 && (
         <div
           style={{
             position: "relative",
@@ -576,7 +757,7 @@ export default function Home() {
               background: "#1a1a1a",
               borderRadius: "12px",
               boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-              border: isMobile ? "0px" : `3px solid ${featuredArticles[currentSlide] ? getBorderColor(featuredArticles[currentSlide].sentiment_label) : "#666"}`,
+              border: isMobile ? "0px" : `3px solid ${filterReadArticles(featuredArticles)[currentSlide] ? getBorderColor(filterReadArticles(featuredArticles)[currentSlide].sentiment_label) : "#666"}`,
 
               touchAction: isMobile ? "pan-y" : "auto",
             }}
@@ -592,7 +773,7 @@ export default function Home() {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            {featuredArticles.map((article, index) => {
+            {filterReadArticles(featuredArticles).map((article, index) => {
               const borderColor = getBorderColor(article.sentiment_label);
               const isActive = index === currentSlide;
 
@@ -643,7 +824,7 @@ export default function Home() {
                             zIndex: 10,
                           }}
                         >
-                          {featuredArticles.map((_, idx) => (
+                          {filterReadArticles(featuredArticles).map((_, idx) => (
                             <button
                               key={idx}
                               onClick={() => setCurrentSlide(idx)}
@@ -738,43 +919,81 @@ export default function Home() {
                             fontSize: "11px",
                           }}
                         >
-                          <span style={{ color: "#888" }}>
-                            {article.published_at
-                              ? new Date(article.published_at).toLocaleString(
-                                  "en-US",
-                                  {
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  }
-                                )
-                              : ""}
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <span style={{ color: "#888" }}>
+                              {article.published_at
+                                ? new Date(article.published_at).toLocaleString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    }
+                                  )
+                                : ""}
+                            </span>
 
-                          <span
-                            style={{
-                              background: borderColor,
-                              color: "white",
-                              padding: "4px 12px",
-                              borderRadius: "10px",
-                              fontWeight: "700",
-                              fontSize: "10px",
-                              textTransform: "uppercase",
-                            }}
-                          >
-                            {article.sentiment_label}
-                          </span>
+                            <span
+                              style={{
+                                background: borderColor,
+                                color: "white",
+                                padding: "4px 12px",
+                                borderRadius: "10px",
+                                fontWeight: "700",
+                                fontSize: "10px",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {article.sentiment_label}
+                            </span>
+                          </div>
+
+                          {/* Icons at bottom right */}
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button
+                              onClick={() => markAsRead(article)}
+                              style={{
+                                background: "none",
+                                border: "1px solid #444",
+                                borderRadius: "4px",
+                                padding: "4px 8px",
+                                cursor: "pointer",
+                                fontSize: "12px",
+                                color: "#aaa",
+                              }}
+                              title="Mark as read (hide)"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => saveArticle(article)}
+                              style={{
+                                background: "none",
+                                border: "1px solid #444",
+                                borderRadius: "4px",
+                                padding: "4px 8px",
+                                cursor: "pointer",
+                                fontSize: "12px",
+                                color: "#aaa",
+                              }}
+                              title="Save for later"
+                            >
+                              🔖
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </>
                   ) : (
                     <>
+                      {/* Desktop: Image with 4-row text overlay */}
                       <div
                         style={{
                           position: "relative",
                           width: "100%",
                           height: "500px",
+                          overflow: "hidden",
                         }}
                       >
                         <img
@@ -789,6 +1008,7 @@ export default function Home() {
                           }}
                         />
 
+                        {/* Dark overlay */}
                         <div
                           style={{
                             position: "absolute",
@@ -796,100 +1016,138 @@ export default function Home() {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            background: "rgba(0,0,0,0.4)",
+                            background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 100%)",
                           }}
                         />
 
+                        {/* Text overlay - original style with icons at bottom right */}
                         <div
                           style={{
                             position: "absolute",
                             bottom: 0,
                             left: 0,
                             right: 0,
-                            padding: "48px",
-                            background:
-                              "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
-                            color: "white",
+                            padding: "30px 40px",
+                            background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
+                            color: "#e0e0e0",
                           }}
                         >
-                          <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-                            <div style={{ marginBottom: "12px" }}>
-                              <span
-                                style={{
-                                  background: borderColor,
-                                  color: "white",
-                                  padding: "7px 18px",
-                                  borderRadius: "20px",
-                                  fontSize: "13px",
-                                  fontWeight: "700",
-                                  textTransform: "uppercase",
-                                  marginRight: "12px",
-                                  boxShadow:
-                                    "0 2px 8px rgba(0,0,0,0.3)",
-                                }}
-                              >
-                                {article.sentiment_label}
-                              </span>
-
-                              <span
-                                style={{
-                                  background: "#e3f2fd",
-                                  color: "#1976d2",
-                                  padding: "7px 18px",
-                                  borderRadius: "20px",
-                                  fontSize: "13px",
-                                  fontWeight: "700",
-                                  boxShadow:
-                                    "0 2px 8px rgba(0,0,0,0.3)",
-                                }}
-                              >
-                                {article.category}
-                              </span>
-                            </div>
-
-                            <a
-                              href={article.source_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                          {/* Row 1: Sentiment + Category badges */}
+                          <div style={{ marginBottom: "12px" }}>
+                            <span
                               style={{
+                                background: borderColor,
                                 color: "white",
-                                textDecoration: "none",
-                                fontSize: "24px",
+                                padding: "7px 18px",
+                                borderRadius: "20px",
+                                fontSize: "13px",
                                 fontWeight: "700",
-                                display: "block",
-                                margin: "12px 0",
-                                lineHeight: "1.2",
-                                textShadow:
-                                  "2px 2px 4px rgba(0,0,0,0.5)",
+                                textTransform: "uppercase",
+                                marginRight: "12px",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                               }}
                             >
-                              {article.title}
-                            </a>
-
-                            <p
+                              {article.sentiment_label}
+                            </span>
+                            <span
                               style={{
-                                fontSize: "15px",
-                                lineHeight: "1.6",
-                                marginBottom: "12px",
-                                opacity: 0.95,
-                                textShadow:
-                                  "1px 1px 2px rgba(0,0,0,0.5)",
+                                background: "#e3f2fd",
+                                color: "#1976d2",
+                                padding: "7px 18px",
+                                borderRadius: "20px",
+                                fontSize: "13px",
+                                fontWeight: "700",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                               }}
                             >
-                              {article.summary.substring(0, 150)}...
-                            </p>
+                              {article.category}
+                            </span>
+                          </div>
 
+                          {/* Row 2: Title */}
+                          <a
+                            href={article.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: "#ffffff",
+                              textDecoration: "none",
+                              fontSize: "24px",
+                              fontWeight: "700",
+                              display: "block",
+                              marginBottom: "12px",
+                              lineHeight: "1.2",
+                              textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+                            }}
+                          >
+                            {article.title}
+                          </a>
+
+                          {/* Row 3: Summary */}
+                          <p
+                            style={{
+                              margin: "0 0 12px",
+                              fontSize: "15px",
+                              lineHeight: "1.6",
+                              opacity: 0.95,
+                              textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                            }}
+                          >
+                            {article.summary.substring(0, 150)}...
+                          </p>
+
+                          {/* Row 4: Source (left) + Icons (right) */}
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
                             <span
                               style={{
                                 fontSize: "14px",
                                 fontWeight: "600",
                                 opacity: 0.85,
-                                textShadow:
-                                  "1px 1px 2px rgba(0,0,0,0.5)",
+                                textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
                               }}
                             >
                               {getSourceName(article.source_url)}
                             </span>
+
+                            {/* Icons at bottom right */}
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button
+                                onClick={() => markAsRead(article)}
+                                style={{
+                                  background: "rgba(0,0,0,0.5)",
+                                  border: "1px solid #555",
+                                  borderRadius: "4px",
+                                  padding: "6px 10px",
+                                  cursor: "pointer",
+                                  fontSize: "14px",
+                                  color: "#ccc",
+                                }}
+                                title="Mark as read (hide)"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={() => saveArticle(article)}
+                                style={{
+                                  background: "rgba(0,0,0,0.5)",
+                                  border: "1px solid #555",
+                                  borderRadius: "4px",
+                                  padding: "6px 10px",
+                                  cursor: "pointer",
+                                  fontSize: "14px",
+                                  color: "#ccc",
+                                }}
+                                title="Save for later"
+                              >
+                                🔖
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -961,7 +1219,7 @@ export default function Home() {
                     zIndex: 10,
                   }}
                 >
-                  {featuredArticles.map((_, index) => (
+                  {filterReadArticles(featuredArticles).map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentSlide(index)}
@@ -988,7 +1246,7 @@ export default function Home() {
 
       {/* LIST SECTION */}
       <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
-        {!loading && listArticles.length > 0 && (
+        {!loading && filterReadArticles(listArticles).length > 0 && (
           <>
             <h2
               style={{
@@ -1000,7 +1258,7 @@ export default function Home() {
               More Articles
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {listArticles.map((item) => {
+              {filterReadArticles(listArticles).map((item) => {
                 const borderColor = getBorderColor(item.sentiment_label);
 
                 return (
@@ -1028,7 +1286,6 @@ export default function Home() {
                         marginBottom: "10px",
                         lineHeight: "1.4",
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-
                       }}
                     >
                       {item.title}
@@ -1042,7 +1299,6 @@ export default function Home() {
                         fontSize: "14px",
                         lineHeight: "1.6",
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-
                       }}
                     >
                       {item.summary}
@@ -1079,7 +1335,7 @@ export default function Home() {
                       )}
                     </div>
 
-                    {/* Row 4: Timestamp (LEFT) and Sentiment (RIGHT) */}
+                    {/* Row 4: Timestamp + Sentiment (LEFT) and Icons (RIGHT) */}
                     <div
                       style={{
                         display: "flex",
@@ -1088,33 +1344,67 @@ export default function Home() {
                         fontSize: "12px",
                       }}
                     >
-                      {/* LEFT: Timestamp */}
-                      <span style={{ color: isMobile ? "#aaaaaa" : "#666" }}>
-                        {item.published_at
-                          ? new Date(item.published_at).toLocaleString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : ""}
-                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ color: isMobile ? "#aaaaaa" : "#666" }}>
+                          {item.published_at
+                            ? new Date(item.published_at).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : ""}
+                        </span>
 
-                      {/* RIGHT: Sentiment Badge */}
-                      <span
-                        style={{
-                          background: borderColor,
-                          color: "white",
-                          padding: "4px 12px",
-                          borderRadius: "12px",
-                          fontWeight: "600",
-                          fontSize: "11px",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {item.sentiment_label}
-                      </span>
+                        <span
+                          style={{
+                            background: borderColor,
+                            color: "white",
+                            padding: "4px 12px",
+                            borderRadius: "12px",
+                            fontWeight: "600",
+                            fontSize: "11px",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {item.sentiment_label}
+                        </span>
+                      </div>
+
+                      {/* Icons at bottom right */}
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          onClick={() => markAsRead(item)}
+                          style={{
+                            background: "none",
+                            border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                            borderRadius: "4px",
+                            padding: "4px 8px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            color: isMobile ? "#aaa" : "#666",
+                          }}
+                          title="Mark as read (hide)"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => saveArticle(item)}
+                          style={{
+                            background: "none",
+                            border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                            borderRadius: "4px",
+                            padding: "4px 8px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            color: isMobile ? "#aaa" : "#666",
+                          }}
+                          title="Save for later"
+                        >
+                          🔖
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
