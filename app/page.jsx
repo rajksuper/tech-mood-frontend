@@ -41,15 +41,60 @@ export default function Home() {
     if (storedSaved) setSavedArticles(JSON.parse(storedSaved));
   }, []);
 
+  // Fetch a replacement article for carousel
+  const fetchReplacementArticle = async (excludeIds) => {
+    try {
+      const url = selectedCategory
+        ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(selectedCategory)}`
+        : "https://tech-mood-backend-production.up.railway.app/articles";
+      
+      const res = await fetch(url);
+      const json = await res.json();
+      const allArticles = Array.isArray(json.articles) ? json.articles : [];
+      
+      // Find an article with image that's not already shown or read
+      const replacement = allArticles.find(a => 
+        a.image_url && 
+        !excludeIds.includes(a.id) && 
+        !readArticles.includes(a.id)
+      );
+      
+      return replacement || null;
+    } catch {
+      return null;
+    }
+  };
+
   // Mark article as read (hides from feed)
-  const markAsRead = (article) => {
+  const markAsRead = async (article, isCarousel = false) => {
     const newRead = [...readArticles, article.id];
     setReadArticles(newRead);
     localStorage.setItem('readArticles', JSON.stringify(newRead));
+    
+    // If it's a carousel article, fetch replacement
+    if (isCarousel) {
+      const currentIds = featuredArticles.map(a => a.id);
+      const replacement = await fetchReplacementArticle([...currentIds, article.id]);
+      
+      if (replacement) {
+        // Replace the article in featuredArticles
+        setFeaturedArticles(prev => 
+          prev.map(a => a.id === article.id ? replacement : a)
+        );
+      } else {
+        // No replacement available, just remove it
+        setFeaturedArticles(prev => prev.filter(a => a.id !== article.id));
+      }
+      
+      // Reset slide if needed
+      if (currentSlide >= featuredArticles.length - 1) {
+        setCurrentSlide(0);
+      }
+    }
   };
 
   // Save article (hides from feed + saves for later)
-  const saveArticle = (article) => {
+  const saveArticle = async (article, isCarousel = false) => {
     const newRead = [...readArticles, article.id];
     setReadArticles(newRead);
     localStorage.setItem('readArticles', JSON.stringify(newRead));
@@ -60,6 +105,27 @@ export default function Home() {
       setSavedArticles(newSaved);
       localStorage.setItem('savedArticles', JSON.stringify(newSaved));
     }
+    
+    // If it's a carousel article, fetch replacement
+    if (isCarousel) {
+      const currentIds = featuredArticles.map(a => a.id);
+      const replacement = await fetchReplacementArticle([...currentIds, article.id]);
+      
+      if (replacement) {
+        // Replace the article in featuredArticles
+        setFeaturedArticles(prev => 
+          prev.map(a => a.id === article.id ? replacement : a)
+        );
+      } else {
+        // No replacement available, just remove it
+        setFeaturedArticles(prev => prev.filter(a => a.id !== article.id));
+      }
+      
+      // Reset slide if needed
+      if (currentSlide >= featuredArticles.length - 1) {
+        setCurrentSlide(0);
+      }
+    }
   };
 
   // Remove from saved
@@ -69,7 +135,7 @@ export default function Home() {
     localStorage.setItem('savedArticles', JSON.stringify(newSaved));
   };
 
-  // Filter out read articles
+  // Filter out read articles (only for list, not carousel)
   const filterReadArticles = (articles) => {
     return articles.filter(a => !readArticles.includes(a.id));
   };
@@ -739,7 +805,7 @@ export default function Home() {
       )}
 
       {/* CAROUSEL - Desktop: Text Overlay, Mobile: Clean Image + Dark Section */}
-      {!loading && filterReadArticles(featuredArticles).length > 0 && (
+      {!loading && featuredArticles.length > 0 && (
         <div
           style={{
             position: "relative",
@@ -757,7 +823,7 @@ export default function Home() {
               background: "#1a1a1a",
               borderRadius: "12px",
               boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-              border: isMobile ? "0px" : `3px solid ${filterReadArticles(featuredArticles)[currentSlide] ? getBorderColor(filterReadArticles(featuredArticles)[currentSlide].sentiment_label) : "#666"}`,
+              border: isMobile ? "0px" : `3px solid ${featuredArticles[currentSlide] ? getBorderColor(featuredArticles[currentSlide].sentiment_label) : "#666"}`,
 
               touchAction: isMobile ? "pan-y" : "auto",
             }}
@@ -773,7 +839,7 @@ export default function Home() {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            {filterReadArticles(featuredArticles).map((article, index) => {
+            {featuredArticles.map((article, index) => {
               const borderColor = getBorderColor(article.sentiment_label);
               const isActive = index === currentSlide;
 
@@ -824,7 +890,7 @@ export default function Home() {
                             zIndex: 10,
                           }}
                         >
-                          {filterReadArticles(featuredArticles).map((_, idx) => (
+                          {featuredArticles.map((_, idx) => (
                             <button
                               key={idx}
                               onClick={() => setCurrentSlide(idx)}
@@ -952,7 +1018,7 @@ export default function Home() {
                           {/* Icons at bottom right */}
                           <div style={{ display: "flex", gap: "8px" }}>
                             <button
-                              onClick={() => markAsRead(article)}
+                              onClick={() => markAsRead(article, true)}
                               style={{
                                 background: "none",
                                 border: "1px solid #444",
@@ -967,7 +1033,7 @@ export default function Home() {
                               ✓
                             </button>
                             <button
-                              onClick={() => saveArticle(article)}
+                              onClick={() => saveArticle(article, true)}
                               style={{
                                 background: "none",
                                 border: "1px solid #444",
@@ -1118,7 +1184,7 @@ export default function Home() {
                             {/* Icons at bottom right */}
                             <div style={{ display: "flex", gap: "8px" }}>
                               <button
-                                onClick={() => markAsRead(article)}
+                                onClick={() => markAsRead(article, true)}
                                 style={{
                                   background: "rgba(0,0,0,0.5)",
                                   border: "1px solid #555",
@@ -1133,7 +1199,7 @@ export default function Home() {
                                 ✓
                               </button>
                               <button
-                                onClick={() => saveArticle(article)}
+                                onClick={() => saveArticle(article, true)}
                                 style={{
                                   background: "rgba(0,0,0,0.5)",
                                   border: "1px solid #555",
@@ -1219,7 +1285,7 @@ export default function Home() {
                     zIndex: 10,
                   }}
                 >
-                  {filterReadArticles(featuredArticles).map((_, index) => (
+                  {featuredArticles.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentSlide(index)}
