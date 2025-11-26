@@ -1,8 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-
-
 // Clean publisher name
 function getSourceName(url) {
   try {
@@ -21,111 +19,35 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1); // Will be calculated dynamically
+  const [totalPages, setTotalPages] = useState(1);
   const [isMobile, setIsMobile] = useState(false);
-  const [hasMounted, setHasMounted] = useState(false); // Track if component has mounted
+  const [hasMounted, setHasMounted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const scrollPositionRef = useRef(0);
   const isTopPaginationRef = useRef(false);
-  
-  // Read & Save functionality
-  const [readArticles, setReadArticles] = useState([]);
+
+  // Save functionality only
   const [savedArticles, setSavedArticles] = useState([]);
   const [showSavedDropdown, setShowSavedDropdown] = useState(false);
 
-  // Load read/saved from localStorage on mount
+  // Load saved from localStorage on mount
   useEffect(() => {
-    const storedRead = localStorage.getItem('readArticles');
     const storedSaved = localStorage.getItem('savedArticles');
-    if (storedRead) setReadArticles(JSON.parse(storedRead));
     if (storedSaved) setSavedArticles(JSON.parse(storedSaved));
   }, []);
 
-  // Fetch a replacement article for carousel
-  const fetchReplacementArticle = async (excludeIds) => {
-    try {
-      const url = selectedCategory
-        ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(selectedCategory)}`
-        : "https://tech-mood-backend-production.up.railway.app/articles";
-      
-      const res = await fetch(url);
-      const json = await res.json();
-      const allArticles = Array.isArray(json.articles) ? json.articles : [];
-      
-      // Find an article with image that's not already shown or read
-      const replacement = allArticles.find(a => 
-        a.image_url && 
-        !excludeIds.includes(a.id) && 
-        !readArticles.includes(a.id)
-      );
-      
-      return replacement || null;
-    } catch {
-      return null;
-    }
-  };
-
-  // Mark article as read (hides from feed)
-  const markAsRead = async (article, isCarousel = false) => {
-    const newRead = [...readArticles, article.id];
-    setReadArticles(newRead);
-    localStorage.setItem('readArticles', JSON.stringify(newRead));
-    
-    // If it's a carousel article, fetch replacement
-    if (isCarousel) {
-      const currentIds = featuredArticles.map(a => a.id);
-      const replacement = await fetchReplacementArticle([...currentIds, article.id]);
-      
-      if (replacement) {
-        // Replace the article in featuredArticles
-        setFeaturedArticles(prev => 
-          prev.map(a => a.id === article.id ? replacement : a)
-        );
-      } else {
-        // No replacement available, just remove it
-        setFeaturedArticles(prev => prev.filter(a => a.id !== article.id));
-      }
-      
-      // Reset slide if needed
-      if (currentSlide >= featuredArticles.length - 1) {
-        setCurrentSlide(0);
-      }
-    }
-  };
-
-  // Save article (hides from feed + saves for later)
-  const saveArticle = async (article, isCarousel = false) => {
-    const newRead = [...readArticles, article.id];
-    setReadArticles(newRead);
-    localStorage.setItem('readArticles', JSON.stringify(newRead));
-    
-    // Add full article to saved (if not already saved)
+  // Save article (bookmark only, doesn't hide)
+  const saveArticle = (article) => {
     if (!savedArticles.find(a => a.id === article.id)) {
       const newSaved = [...savedArticles, article];
       setSavedArticles(newSaved);
       localStorage.setItem('savedArticles', JSON.stringify(newSaved));
     }
-    
-    // If it's a carousel article, fetch replacement
-    if (isCarousel) {
-      const currentIds = featuredArticles.map(a => a.id);
-      const replacement = await fetchReplacementArticle([...currentIds, article.id]);
-      
-      if (replacement) {
-        // Replace the article in featuredArticles
-        setFeaturedArticles(prev => 
-          prev.map(a => a.id === article.id ? replacement : a)
-        );
-      } else {
-        // No replacement available, just remove it
-        setFeaturedArticles(prev => prev.filter(a => a.id !== article.id));
-      }
-      
-      // Reset slide if needed
-      if (currentSlide >= featuredArticles.length - 1) {
-        setCurrentSlide(0);
-      }
-    }
+  };
+
+  // Check if article is saved
+  const isArticleSaved = (articleId) => {
+    return savedArticles.some(a => a.id === articleId);
   };
 
   // Remove from saved
@@ -135,16 +57,19 @@ export default function Home() {
     localStorage.setItem('savedArticles', JSON.stringify(newSaved));
   };
 
-  // Filter out read articles (only for list, not carousel)
-  const filterReadArticles = (articles) => {
-    return articles.filter(a => !readArticles.includes(a.id));
+  // Toggle save/unsave
+  const toggleSave = (article) => {
+    if (isArticleSaved(article.id)) {
+      removeFromSaved(article.id);
+    } else {
+      saveArticle(article);
+    }
   };
 
-  // Mark component as mounted and inject mobile styles (for hydration safety)
+  // Mark component as mounted and inject mobile styles
   useEffect(() => {
     setHasMounted(true);
-    
-    // Inject mobile dark background styles
+
     const style = document.createElement('style');
     style.id = 'mobile-dark-bg';
     style.textContent = `
@@ -157,17 +82,17 @@ export default function Home() {
       }
     `;
     document.head.appendChild(style);
-    
+
     return () => {
       const existingStyle = document.getElementById('mobile-dark-bg');
       if (existingStyle) existingStyle.remove();
     };
   }, []);
 
-  // Detect mobile screen - only after mount to avoid hydration mismatch
+  // Detect mobile screen
   useEffect(() => {
     if (!hasMounted) return;
-    
+
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
     };
@@ -183,22 +108,19 @@ export default function Home() {
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
 
-    // Calculate total number of pages
     calculateTotalPages();
   }, []);
 
   const calculateTotalPages = () => {
     const countUrl = selectedCategory
-      ? `https://tech-mood-backend-production.up.railway.app/articles/count?category=${encodeURIComponent(
-          selectedCategory
-        )}`
+      ? `https://tech-mood-backend-production.up.railway.app/articles/count?category=${encodeURIComponent(selectedCategory)}`
       : "https://tech-mood-backend-production.up.railway.app/articles/count";
 
     fetch(countUrl)
       .then((res) => res.json())
       .then((json) => {
         const total = json.count || 0;
-        const pages = Math.ceil(total / 24); // 24 articles per page
+        const pages = Math.ceil(total / 24);
         setTotalPages(pages);
       })
       .catch(() => setTotalPages(1));
@@ -206,10 +128,10 @@ export default function Home() {
 
   useEffect(() => {
     loadArticles();
-    calculateTotalPages(); // Recalculate when category changes
+    calculateTotalPages();
   }, [selectedCategory, currentPage]);
 
-  // Restore scroll position after loading (for top pagination only)
+  // Restore scroll position after loading
   useEffect(() => {
     if (!loading && isTopPaginationRef.current) {
       window.scrollTo(0, scrollPositionRef.current);
@@ -217,22 +139,21 @@ export default function Home() {
     }
   }, [loading]);
 
-  // Auto-play carousel (10 seconds on mobile, 5 seconds on desktop, pause on hover)
+  // Auto-play carousel
   useEffect(() => {
-    if (isHovered) return; // Don't auto-play when mouse is over carousel
-
+    if (isHovered) return;
     if (!featuredArticles.length) return;
 
     const slideInterval = isMobile ? 10000 : 5000;
-    
+
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % featuredArticles.length);
     }, slideInterval);
 
-    return () => clearInterval(interval); // Cleanup on unmount
+    return () => clearInterval(interval);
   }, [featuredArticles.length, isHovered, isMobile]);
 
-  // Keyboard navigation (arrow keys)
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "ArrowLeft") {
@@ -250,21 +171,16 @@ export default function Home() {
     setLoading(true);
     setCurrentSlide(0);
 
-    // Page 1 uses /articles, Page 2+ uses /articles/page/N
-    const pageNum = currentPage - 1; // API uses 0-indexed pages
+    const pageNum = currentPage - 1;
     let url;
 
     if (currentPage === 1) {
       url = selectedCategory
-        ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(
-            selectedCategory
-          )}`
+        ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(selectedCategory)}`
         : "https://tech-mood-backend-production.up.railway.app/articles";
     } else {
       url = selectedCategory
-        ? `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}?category=${encodeURIComponent(
-            selectedCategory
-          )}`
+        ? `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
         : `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}`;
     }
 
@@ -272,23 +188,25 @@ export default function Home() {
       .then((res) => res.json())
       .then((json) => {
         const allArticles = Array.isArray(json.articles) ? json.articles : [];
+        
+        // Sort by published_at DESC (newest first)
+        const sorted = allArticles.sort((a, b) => 
+          new Date(b.published_at) - new Date(a.published_at)
+        );
 
-        // SHUFFLE articles randomly on each page load
-        const shuffled = allArticles.sort(() => Math.random() - 0.5);
+        // Separate: articles with images vs without
+        const withImages = sorted.filter((a) => a.image_url);
+        const withoutImages = sorted.filter((a) => !a.image_url);
 
-        // 12 with images for carousel, rest without for list
-        const withImages = shuffled.filter((a) => a.image_url).slice(0, 12);
-        const withoutImages = shuffled.filter((a) => !a.image_url).slice(0, 12);
+        // Take first 12 of each (newest), then shuffle for display variety
+        const top12Images = withImages.slice(0, 12).sort(() => Math.random() - 0.5);
+        const top12Text = withoutImages.slice(0, 12).sort(() => Math.random() - 0.5);
 
-        setFeaturedArticles(withImages);
-        setListArticles(withoutImages);
+        setFeaturedArticles(top12Images);
+        setListArticles(top12Text);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  };
-
-  const goToPage = (pageNum) => {
-    setCurrentPage(pageNum);
   };
 
   const goToPageTop = (pageNum) => {
@@ -300,22 +218,9 @@ export default function Home() {
   const goToPageBottom = (pageNum) => {
     isTopPaginationRef.current = false;
     setCurrentPage(pageNum);
-    // Scroll to top smoothly
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }, 100);
-  };
-
-  const nextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
   };
 
   const nextPageTop = () => {
@@ -381,11 +286,8 @@ export default function Home() {
 
   const handleTouchMove = (e) => {
     setTouchEnd(e.touches[0].clientX);
-
     const deltaX = Math.abs(e.touches[0].clientX - touchStart);
     const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
-
-    // On mobile, if the gesture is mostly horizontal, prevent vertical page scroll
     if (isMobile && deltaX > deltaY) {
       e.preventDefault();
     }
@@ -393,12 +295,9 @@ export default function Home() {
 
   const handleTouchEnd = () => {
     if (touchStart - touchEnd > 75) {
-      // Swipe left
       nextSlide();
     }
-
     if (touchStart - touchEnd < -75) {
-      // Swipe right
       prevSlide();
     }
   };
@@ -416,12 +315,7 @@ export default function Home() {
       <div style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <h1
-              style={{
-                fontSize: isMobile ? "22px" : "32px",
-                marginBottom: "8px",
-              }}
-            >
+            <h1 style={{ fontSize: isMobile ? "22px" : "32px", marginBottom: "8px" }}>
               Tech Mood Dashboard
             </h1>
             <h3
@@ -503,13 +397,7 @@ export default function Home() {
                 </div>
 
                 {savedArticles.length === 0 ? (
-                  <div
-                    style={{
-                      padding: "30px",
-                      textAlign: "center",
-                      color: isMobile ? "#888" : "#999",
-                    }}
-                  >
+                  <div style={{ padding: "30px", textAlign: "center", color: isMobile ? "#888" : "#999" }}>
                     No saved articles yet
                   </div>
                 ) : (
@@ -555,13 +443,7 @@ export default function Home() {
                         >
                           {article.title}
                         </a>
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: isMobile ? "#888" : "#999",
-                            marginTop: "4px",
-                          }}
-                        >
+                        <div style={{ fontSize: "11px", color: isMobile ? "#888" : "#999", marginTop: "4px" }}>
                           {getSourceName(article.source_url)} • {article.category}
                         </div>
                       </div>
@@ -573,7 +455,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* CATEGORY PILLS / MOBILE RECTANGLES */}
+        {/* CATEGORY PILLS */}
         <div
           style={{
             marginBottom: "20px",
@@ -584,7 +466,6 @@ export default function Home() {
             paddingBottom: "10px",
           }}
         >
-          {/* ALL */}
           <div
             onClick={() => {
               setSelectedCategory(null);
@@ -593,20 +474,12 @@ export default function Home() {
             style={{
               padding: isMobile ? "6px 10px" : "8px 16px",
               fontSize: isMobile ? "12px" : "14px",
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-
               background: isMobile
-                ? selectedCategory === null
-                  ? "#3a3a3a"
-                  : "#2a2a2a"
-                : selectedCategory === null
-                ? "#0066cc"
-                : "white",
+                ? selectedCategory === null ? "#3a3a3a" : "#2a2a2a"
+                : selectedCategory === null ? "#0066cc" : "white",
               color: isMobile
                 ? "#e0e0e0"
-                : selectedCategory === null
-                ? "white"
-                : "#333",
+                : selectedCategory === null ? "white" : "#333",
               border: isMobile ? "1px solid #444" : "2px solid #0066cc",
               borderRadius: isMobile ? "4px" : "20px",
               cursor: "pointer",
@@ -617,194 +490,111 @@ export default function Home() {
             All
           </div>
 
-          {categories
-            .map((cat) => (
-              <div
-                key={cat}
-                onClick={() => {
-                  setSelectedCategory(cat);
-                  setCurrentPage(1);
-                }}
-                style={{
-                  padding: isMobile ? "6px 10px" : "8px 16px",
-                  fontSize: isMobile ? "12px" : "14px",
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-
-                  background: isMobile
-                    ? selectedCategory === cat
-                      ? "#3a3a3a"
-                      : "#2a2a2a"
-                    : selectedCategory === cat
-                    ? "#0066cc"
-                    : "white",
-                  color: isMobile
-                    ? "#e0e0e0"
-                    : selectedCategory === cat
-                    ? "white"
-                    : "#333",
-                  border: isMobile ? "1px solid #444" : "2px solid #0066cc",
-                  borderRadius: isMobile ? "4px" : "20px",
-                  cursor: "pointer",
-                  fontWeight: "600",
-                  display: "inline-block",
-                }}
-              >
-                {cat}
-              </div>
-            ))}
+          {categories.map((cat) => (
+            <div
+              key={cat}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setCurrentPage(1);
+              }}
+              style={{
+                padding: isMobile ? "6px 10px" : "8px 16px",
+                fontSize: isMobile ? "12px" : "14px",
+                background: isMobile
+                  ? selectedCategory === cat ? "#3a3a3a" : "#2a2a2a"
+                  : selectedCategory === cat ? "#0066cc" : "white",
+                color: isMobile
+                  ? "#e0e0e0"
+                  : selectedCategory === cat ? "white" : "#333",
+                border: isMobile ? "1px solid #444" : "2px solid #0066cc",
+                borderRadius: isMobile ? "4px" : "20px",
+                cursor: "pointer",
+                fontWeight: "600",
+                display: "inline-block",
+              }}
+            >
+              {cat}
+            </div>
+          ))}
         </div>
 
-        {/* GOOGLE-STYLE PAGINATION (Top) - Hidden on mobile */}
+        {/* TOP PAGINATION - Hidden on mobile */}
         {!isMobile && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: "15px",
-            marginBottom: "20px",
-            fontSize: "14px",
-            color: "#666",
-          }}
-        >
-          {currentPage > 1 && (
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                prevPageTop();
-              }}
-              style={{
-                color: isMobile ? "#4da3ff" : "#1a0dab",
-                textDecoration: "none",
-                cursor: "pointer",
-              }}
-            >
-              &lt; Previous
-            </a>
-          )}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "15px",
+              marginBottom: "20px",
+              fontSize: "14px",
+              color: "#666",
+            }}
+          >
+            {currentPage > 1 && (
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); prevPageTop(); }}
+                style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}
+              >
+                &lt; Previous
+              </a>
+            )}
 
-          {/* Smart pagination logic */}
-          {(() => {
-            const pages = [];
-            const showPages = 5; // Show 5 page numbers at a time
-
-            // Always show first page
-            if (currentPage > 3) {
-              pages.push(
-                <a
-                  key={1}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    goToPageTop(1);
-                  }}
-                  style={{
-                    color: isMobile ? "#4da3ff" : "#1a0dab",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  1
-                </a>
-              );
-              if (currentPage > 4) {
-                pages.push(<span key="dots1">...</span>);
-              }
-            }
-
-            // Show pages around current page
-            const start = Math.max(1, currentPage - 2);
-            const end = Math.min(totalPages, currentPage + 2);
-
-            for (let i = start; i <= end; i++) {
-              if (i === currentPage) {
+            {(() => {
+              const pages = [];
+              if (currentPage > 3) {
                 pages.push(
-                  <strong key={i} style={{ color: isMobile ? "#ffffff" : "#000" }}>
-                    {i}
-                  </strong>
+                  <a key={1} href="#" onClick={(e) => { e.preventDefault(); goToPageTop(1); }}
+                    style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}>1</a>
                 );
-              } else {
+                if (currentPage > 4) pages.push(<span key="dots1">...</span>);
+              }
+
+              const start = Math.max(1, currentPage - 2);
+              const end = Math.min(totalPages, currentPage + 2);
+
+              for (let i = start; i <= end; i++) {
+                if (i === currentPage) {
+                  pages.push(<strong key={i} style={{ color: "#000" }}>{i}</strong>);
+                } else {
+                  pages.push(
+                    <a key={i} href="#" onClick={(e) => { e.preventDefault(); goToPageTop(i); }}
+                      style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}>{i}</a>
+                  );
+                }
+              }
+
+              if (currentPage < totalPages - 2) {
+                if (currentPage < totalPages - 3) pages.push(<span key="dots2">...</span>);
                 pages.push(
-                  <a
-                    key={i}
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      goToPageTop(i);
-                    }}
-                    style={{
-                      color: isMobile ? "#4da3ff" : "#1a0dab",
-                      textDecoration: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {i}
-                  </a>
+                  <a key={totalPages} href="#" onClick={(e) => { e.preventDefault(); goToPageTop(totalPages); }}
+                    style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}>{totalPages}</a>
                 );
               }
-            }
+              return pages;
+            })()}
 
-            // Always show last page
-            if (currentPage < totalPages - 2) {
-              if (currentPage < totalPages - 3) {
-                pages.push(<span key="dots2">...</span>);
-              }
-              pages.push(
-                <a
-                  key={totalPages}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    goToPageTop(totalPages);
-                  }}
-                  style={{
-                    color: isMobile ? "#4da3ff" : "#1a0dab",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  {totalPages}
-                </a>
-              );
-            }
-
-            return pages;
-          })()}
-
-          {currentPage < totalPages && (
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                nextPageTop();
-              }}
-              style={{
-                color: isMobile ? "#4da3ff" : "#1a0dab",
-                textDecoration: "none",
-                cursor: "pointer",
-              }}
-            >
-              Next &gt;
-            </a>
-          )}
-        </div>
+            {currentPage < totalPages && (
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); nextPageTop(); }}
+                style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}
+              >
+                Next &gt;
+              </a>
+            )}
+          </div>
         )}
       </div>
 
       {loading && (
-        <p
-          style={{
-            textAlign: "center",
-            padding: "40px",
-            color: isMobile ? "#e0e0e0" : "#000",
-          }}
-        >
+        <p style={{ textAlign: "center", padding: "40px", color: isMobile ? "#e0e0e0" : "#000" }}>
           Loading...
         </p>
       )}
 
-      {/* CAROUSEL - Desktop: Text Overlay, Mobile: Clean Image + Dark Section */}
+      {/* CAROUSEL */}
       {!loading && featuredArticles.length > 0 && (
         <div
           style={{
@@ -824,24 +614,18 @@ export default function Home() {
               borderRadius: "12px",
               boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
               border: isMobile ? "0px" : `3px solid ${featuredArticles[currentSlide] ? getBorderColor(featuredArticles[currentSlide].sentiment_label) : "#666"}`,
-
               touchAction: isMobile ? "pan-y" : "auto",
             }}
-            onTouchStart={(e) => {
-              handleTouchStart(e);
-              setIsHovered(true);
-            }}
+            onTouchStart={(e) => { handleTouchStart(e); setIsHovered(true); }}
             onTouchMove={handleTouchMove}
-            onTouchEnd={(e) => {
-              handleTouchEnd();
-              setIsHovered(false);
-            }}
+            onTouchEnd={() => { handleTouchEnd(); setIsHovered(false); }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
             {featuredArticles.map((article, index) => {
               const borderColor = getBorderColor(article.sentiment_label);
               const isActive = index === currentSlide;
+              const isSaved = isArticleSaved(article.id);
 
               return (
                 <div
@@ -859,26 +643,13 @@ export default function Home() {
                 >
                   {isMobile ? (
                     <>
-                      {/* Mobile: Image with dots overlay */}
-                      <div
-                        style={{
-                          position: "relative",
-                          width: "100%",
-                          height: "350px",
-                          overflow: "hidden",
-                        }}
-                      >
+                      {/* Mobile: Image with dots */}
+                      <div style={{ position: "relative", width: "100%", height: "350px", overflow: "hidden" }}>
                         <img
                           src={article.image_url}
                           alt="slide"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
-
-                        {/* Dots overlay on image */}
                         <div
                           style={{
                             position: "absolute",
@@ -899,10 +670,7 @@ export default function Home() {
                                 height: "8px",
                                 borderRadius: "50%",
                                 border: "none",
-                                background:
-                                  idx === currentSlide
-                                    ? "white"
-                                    : "rgba(255,255,255,0.5)",
+                                background: idx === currentSlide ? "white" : "rgba(255,255,255,0.5)",
                                 cursor: "pointer",
                                 padding: 0,
                               }}
@@ -911,15 +679,8 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Dark text section - fixed height */}
-                      <div
-                        style={{
-                          background: "#1a1a1a",
-                          padding: "20px",
-                          color: "white",
-                          minHeight: "200px",
-                        }}
-                      >
+                      {/* Mobile: Text section */}
+                      <div style={{ background: "#1a1a1a", padding: "20px", color: "white", minHeight: "200px" }}>
                         <a
                           href={article.source_url}
                           target="_blank"
@@ -932,35 +693,17 @@ export default function Home() {
                             display: "block",
                             marginBottom: "10px",
                             lineHeight: "1.3",
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-
                           }}
                         >
                           {article.title}
                         </a>
 
-                        <p
-                          style={{
-                            color: "#aaa",
-                            fontSize: "13px",
-                            lineHeight: "1.5",
-                            marginBottom: "12px",
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-
-                          }}
-                        >
+                        <p style={{ color: "#aaa", fontSize: "13px", lineHeight: "1.5", marginBottom: "12px" }}>
                           {article.summary.substring(0, 100)}...
                         </p>
 
                         <div style={{ marginBottom: "10px" }}>
-                          <span
-                            style={{
-                              color: "#4a9eff",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              marginRight: "10px",
-                            }}
-                          >
+                          <span style={{ color: "#4a9eff", fontSize: "12px", fontWeight: "600", marginRight: "10px" }}>
                             {getSourceName(article.source_url)}
                           </span>
                           <span
@@ -977,29 +720,15 @@ export default function Home() {
                           </span>
                         </div>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            fontSize: "11px",
-                          }}
-                        >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                             <span style={{ color: "#888" }}>
                               {article.published_at
-                                ? new Date(article.published_at).toLocaleString(
-                                    "en-US",
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    }
-                                  )
+                                ? new Date(article.published_at).toLocaleString("en-US", {
+                                    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                                  })
                                 : ""}
                             </span>
-
                             <span
                               style={{
                                 background: borderColor,
@@ -1015,66 +744,35 @@ export default function Home() {
                             </span>
                           </div>
 
-                          {/* Icons at bottom right */}
-                          <div style={{ display: "flex", gap: "8px" }}>
-                            <button
-                              onClick={() => markAsRead(article, true)}
-                              style={{
-                                background: "none",
-                                border: "1px solid #444",
-                                borderRadius: "4px",
-                                padding: "4px 8px",
-                                cursor: "pointer",
-                                fontSize: "12px",
-                                color: "#aaa",
-                              }}
-                              title="Mark as read (hide)"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={() => saveArticle(article, true)}
-                              style={{
-                                background: "none",
-                                border: "1px solid #444",
-                                borderRadius: "4px",
-                                padding: "4px 8px",
-                                cursor: "pointer",
-                                fontSize: "12px",
-                                color: "#aaa",
-                              }}
-                              title="Save for later"
-                            >
-                              🔖
-                            </button>
-                          </div>
+                          {/* Save button */}
+                          <button
+                            onClick={() => toggleSave(article)}
+                            style={{
+                              background: isSaved ? "#4a9eff" : "none",
+                              border: "1px solid #444",
+                              borderRadius: "4px",
+                              padding: "4px 8px",
+                              cursor: "pointer",
+                              fontSize: "12px",
+                              color: isSaved ? "white" : "#aaa",
+                            }}
+                            title={isSaved ? "Remove from saved" : "Save for later"}
+                          >
+                            🔖
+                          </button>
                         </div>
                       </div>
                     </>
                   ) : (
                     <>
-                      {/* Desktop: Image with 4-row text overlay */}
-                      <div
-                        style={{
-                          position: "relative",
-                          width: "100%",
-                          height: "500px",
-                          overflow: "hidden",
-                        }}
-                      >
+                      {/* Desktop: Image with overlay */}
+                      <div style={{ position: "relative", width: "100%", height: "500px", overflow: "hidden" }}>
                         <img
                           src={article.image_url}
                           alt="slide"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "contain",
-                            objectPosition: "center",
-                            background: "#000",
-                          }}
+                          style={{ width: "100%", height: "100%", objectFit: "contain", objectPosition: "center", background: "#000" }}
                         />
 
-                        {/* Dark overlay */}
                         <div
                           style={{
                             position: "absolute",
@@ -1086,19 +784,8 @@ export default function Home() {
                           }}
                         />
 
-                        {/* Text overlay - original style with icons at bottom right */}
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            padding: "30px 40px",
-                            background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
-                            color: "#e0e0e0",
-                          }}
-                        >
-                          {/* Row 1: Sentiment + Category badges */}
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "30px 40px", color: "#e0e0e0" }}>
+                          {/* Sentiment + Category badges */}
                           <div style={{ marginBottom: "12px" }}>
                             <span
                               style={{
@@ -1130,7 +817,6 @@ export default function Home() {
                             </span>
                           </div>
 
-                          {/* Row 2: Title */}
                           <a
                             href={article.source_url}
                             target="_blank"
@@ -1149,7 +835,6 @@ export default function Home() {
                             {article.title}
                           </a>
 
-                          {/* Row 3: Summary */}
                           <p
                             style={{
                               margin: "0 0 12px",
@@ -1162,58 +847,26 @@ export default function Home() {
                             {article.summary.substring(0, 150)}...
                           </p>
 
-                          {/* Row 4: Source (left) + Icons (right) */}
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: "14px",
-                                fontWeight: "600",
-                                opacity: 0.85,
-                                textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-                              }}
-                            >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "14px", fontWeight: "600", opacity: 0.85, textShadow: "1px 1px 2px rgba(0,0,0,0.5)" }}>
                               {getSourceName(article.source_url)}
                             </span>
 
-                            {/* Icons at bottom right */}
-                            <div style={{ display: "flex", gap: "8px" }}>
-                              <button
-                                onClick={() => markAsRead(article, true)}
-                                style={{
-                                  background: "rgba(0,0,0,0.5)",
-                                  border: "1px solid #555",
-                                  borderRadius: "4px",
-                                  padding: "6px 10px",
-                                  cursor: "pointer",
-                                  fontSize: "14px",
-                                  color: "#ccc",
-                                }}
-                                title="Mark as read (hide)"
-                              >
-                                ✓
-                              </button>
-                              <button
-                                onClick={() => saveArticle(article, true)}
-                                style={{
-                                  background: "rgba(0,0,0,0.5)",
-                                  border: "1px solid #555",
-                                  borderRadius: "4px",
-                                  padding: "6px 10px",
-                                  cursor: "pointer",
-                                  fontSize: "14px",
-                                  color: "#ccc",
-                                }}
-                                title="Save for later"
-                              >
-                                🔖
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => toggleSave(article)}
+                              style={{
+                                background: isSaved ? "rgba(74,158,255,0.8)" : "rgba(0,0,0,0.5)",
+                                border: "1px solid #555",
+                                borderRadius: "4px",
+                                padding: "6px 10px",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                color: "#ccc",
+                              }}
+                              title={isSaved ? "Remove from saved" : "Save for later"}
+                            >
+                              🔖
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1223,6 +876,7 @@ export default function Home() {
               );
             })}
 
+            {/* Desktop navigation buttons */}
             {!isMobile && (
               <>
                 <button
@@ -1273,7 +927,6 @@ export default function Home() {
                   ›
                 </button>
 
-                {/* Desktop dots at bottom */}
                 <div
                   style={{
                     position: "absolute",
@@ -1294,10 +947,7 @@ export default function Home() {
                         height: "10px",
                         borderRadius: "50%",
                         border: "none",
-                        background:
-                          index === currentSlide
-                            ? "white"
-                            : "rgba(255,255,255,0.5)",
+                        background: index === currentSlide ? "white" : "rgba(255,255,255,0.5)",
                         cursor: "pointer",
                         padding: 0,
                       }}
@@ -1312,20 +962,15 @@ export default function Home() {
 
       {/* LIST SECTION */}
       <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
-        {!loading && filterReadArticles(listArticles).length > 0 && (
+        {!loading && listArticles.length > 0 && (
           <>
-            <h2
-              style={{
-                fontSize: "24px",
-                marginBottom: "16px",
-                fontWeight: "600",
-              }}
-            >
+            <h2 style={{ fontSize: "24px", marginBottom: "16px", fontWeight: "600" }}>
               More Articles
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {filterReadArticles(listArticles).map((item) => {
+              {listArticles.map((item) => {
                 const borderColor = getBorderColor(item.sentiment_label);
+                const isSaved = isArticleSaved(item.id);
 
                 return (
                   <div
@@ -1338,7 +983,6 @@ export default function Home() {
                       borderRadius: "4px",
                     }}
                   >
-                    {/* Row 1: Title */}
                     <a
                       href={item.source_url}
                       target="_blank"
@@ -1351,26 +995,22 @@ export default function Home() {
                         display: "block",
                         marginBottom: "10px",
                         lineHeight: "1.4",
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                       }}
                     >
                       {item.title}
                     </a>
 
-                    {/* Row 2: Summary */}
                     <p
                       style={{
                         margin: "0 0 12px",
                         color: isMobile ? "#aaaaaa" : "#555",
                         fontSize: "14px",
                         lineHeight: "1.6",
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                       }}
                     >
                       {item.summary}
                     </p>
 
-                    {/* Row 3: Source + Category */}
                     <div style={{ marginBottom: "10px" }}>
                       <a
                         href={item.source_url}
@@ -1401,24 +1041,12 @@ export default function Home() {
                       )}
                     </div>
 
-                    {/* Row 4: Timestamp + Sentiment (LEFT) and Icons (RIGHT) */}
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        fontSize: "12px",
-                      }}
-                    >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <span style={{ color: isMobile ? "#aaaaaa" : "#666" }}>
                           {item.published_at
                             ? new Date(item.published_at).toLocaleString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
+                                month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
                               })
                             : ""}
                         </span>
@@ -1438,39 +1066,21 @@ export default function Home() {
                         </span>
                       </div>
 
-                      {/* Icons at bottom right */}
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <button
-                          onClick={() => markAsRead(item)}
-                          style={{
-                            background: "none",
-                            border: isMobile ? "1px solid #444" : "1px solid #ddd",
-                            borderRadius: "4px",
-                            padding: "4px 8px",
-                            cursor: "pointer",
-                            fontSize: "12px",
-                            color: isMobile ? "#aaa" : "#666",
-                          }}
-                          title="Mark as read (hide)"
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={() => saveArticle(item)}
-                          style={{
-                            background: "none",
-                            border: isMobile ? "1px solid #444" : "1px solid #ddd",
-                            borderRadius: "4px",
-                            padding: "4px 8px",
-                            cursor: "pointer",
-                            fontSize: "12px",
-                            color: isMobile ? "#aaa" : "#666",
-                          }}
-                          title="Save for later"
-                        >
-                          🔖
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => toggleSave(item)}
+                        style={{
+                          background: isSaved ? (isMobile ? "#4a9eff" : "#0066cc") : "none",
+                          border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                          borderRadius: "4px",
+                          padding: "4px 8px",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          color: isSaved ? "white" : (isMobile ? "#aaa" : "#666"),
+                        }}
+                        title={isSaved ? "Remove from saved" : "Save for later"}
+                      >
+                        🔖
+                      </button>
                     </div>
                   </div>
                 );
@@ -1479,7 +1089,7 @@ export default function Home() {
           </>
         )}
 
-        {/* PAGE NAVIGATION (Bottom - Text Links with Scroll to Top) */}
+        {/* BOTTOM PAGINATION */}
         <div
           style={{
             display: "flex",
@@ -1489,131 +1099,57 @@ export default function Home() {
             margin: "40px 0",
             fontSize: "14px",
             color: isMobile ? "#aaaaaa" : "#666",
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-
           }}
         >
           {currentPage > 1 && (
             <a
               href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                prevPageBottom();
-              }}
-              style={{
-                color: isMobile ? "#4da3ff" : "#1a0dab",
-                textDecoration: "none",
-                cursor: "pointer",
-              }}
+              onClick={(e) => { e.preventDefault(); prevPageBottom(); }}
+              style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none", cursor: "pointer" }}
             >
               &lt; Previous
             </a>
           )}
 
-          {/* Smart pagination logic */}
           {(() => {
             const pages = [];
-
-            // Always show first page
             if (currentPage > 3) {
               pages.push(
-                <a
-                  key={1}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    goToPageBottom(1);
-                  }}
-                  style={{
-                    color: isMobile ? "#4da3ff" : "#1a0dab",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  1
-                </a>
+                <a key={1} href="#" onClick={(e) => { e.preventDefault(); goToPageBottom(1); }}
+                  style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none", cursor: "pointer" }}>1</a>
               );
-              if (currentPage > 4) {
-                pages.push(<span key="dots1">...</span>);
-              }
+              if (currentPage > 4) pages.push(<span key="dots1">...</span>);
             }
 
-            // Show pages around current page
             const start = Math.max(1, currentPage - 2);
             const end = Math.min(totalPages, currentPage + 2);
 
             for (let i = start; i <= end; i++) {
               if (i === currentPage) {
-                pages.push(
-                  <strong
-                    key={i}
-                    style={{
-                      color: isMobile ? "#ffffff" : "#000",
-                    }}
-                  >
-                    {i}
-                  </strong>
-                );
+                pages.push(<strong key={i} style={{ color: isMobile ? "#ffffff" : "#000" }}>{i}</strong>);
               } else {
                 pages.push(
-                  <a
-                    key={i}
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      goToPageBottom(i);
-                    }}
-                    style={{
-                      color: isMobile ? "#4da3ff" : "#1a0dab",
-                      textDecoration: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {i}
-                  </a>
+                  <a key={i} href="#" onClick={(e) => { e.preventDefault(); goToPageBottom(i); }}
+                    style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none", cursor: "pointer" }}>{i}</a>
                 );
               }
             }
 
-            // Always show last page
             if (currentPage < totalPages - 2) {
-              if (currentPage < totalPages - 3) {
-                pages.push(<span key="dots2">...</span>);
-              }
+              if (currentPage < totalPages - 3) pages.push(<span key="dots2">...</span>);
               pages.push(
-                <a
-                  key={totalPages}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    goToPageBottom(totalPages);
-                  }}
-                  style={{
-                    color: isMobile ? "#4da3ff" : "#1a0dab",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  {totalPages}
-                </a>
+                <a key={totalPages} href="#" onClick={(e) => { e.preventDefault(); goToPageBottom(totalPages); }}
+                  style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none", cursor: "pointer" }}>{totalPages}</a>
               );
             }
-
             return pages;
           })()}
 
           {currentPage < totalPages && (
             <a
               href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                nextPageBottom();
-              }}
-              style={{
-                color: isMobile ? "#4da3ff" : "#1a0dab",
-                textDecoration: "none",
-                cursor: "pointer",
-              }}
+              onClick={(e) => { e.preventDefault(); nextPageBottom(); }}
+              style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none", cursor: "pointer" }}
             >
               Next &gt;
             </a>
