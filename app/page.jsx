@@ -509,7 +509,7 @@ export default function Home() {
         {/* CATEGORY PILLS */}
         <div
           style={{
-            marginBottom: "20px",
+            marginBottom: "10px",
             display: "flex",
             gap: "10px",
             overflowX: "auto",
@@ -569,7 +569,7 @@ export default function Home() {
           ))}
         </div>
 
-        {/* TOP PAGINATION - Hidden on mobile */}
+        {/* TOP PAGINATION - Hidden on mobile 
         {!isMobile && (
           <div
             style={{
@@ -636,11 +636,11 @@ export default function Home() {
               </a>
             )}
           </div>
-        )}
-      </div>
+        )}*/}
+      </div> 
 
       {loading && (
-        <p style={{ textAlign: "center", padding: "40px", color: isMobile ? "#e0e0e0" : "#000" }}>
+        <p style={{ textAlign: "center", padding: "20px", color: isMobile ? "#e0e0e0" : "#000" }}>
           Loading...
         </p>
       )}
@@ -650,7 +650,7 @@ export default function Home() {
         <div
           style={{
             position: "relative",
-            marginBottom: "40px",
+            marginBottom: "20px",
             maxWidth: isMobile ? "100%" : "1600px",
             margin: "0 auto 40px auto",
             padding: isMobile ? "0 10px" : "0 20px",
