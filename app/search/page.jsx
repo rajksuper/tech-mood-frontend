@@ -27,11 +27,31 @@ function SearchContent() {
   const [isMobile, setIsMobile] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
 
-  // Detect mobile
+  // Mark component as mounted and inject mobile styles
   useEffect(() => {
     setHasMounted(true);
+
+    const style = document.createElement('style');
+    style.id = 'search-mobile-dark-bg';
+    style.textContent = `
+      @media (max-width: 768px) {
+        html, body, #__next {
+          background: #0d0d0d !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow-x: hidden !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      const existingStyle = document.getElementById('search-mobile-dark-bg');
+      if (existingStyle) existingStyle.remove();
+    };
   }, []);
 
+  // Detect mobile screen
   useEffect(() => {
     if (!hasMounted) return;
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -123,10 +143,11 @@ function SearchContent() {
         minHeight: "100vh",
         background: isMobile ? "#0d0d0d" : "white",
         color: isMobile ? "#e0e0e0" : "inherit",
+        overflowX: "hidden",
       }}
     >
       {/* Header */}
-      <div style={{ padding: "20px", maxWidth: "1000px", margin: "0 auto" }}>
+      <div style={{ padding: isMobile ? "15px" : "20px", maxWidth: "1000px", margin: "0 auto" }}>
         <Link
           href="/"
           style={{
