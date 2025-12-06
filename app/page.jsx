@@ -377,7 +377,7 @@ export default function Home() {
     >
       {/* HEADER */}
       <div style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row" }}>
           <div>
             <h1 style={{ fontSize: isMobile ? "22px" : "32px", marginBottom: "8px" }}>
               Tech Mood Dashboard
@@ -386,7 +386,7 @@ export default function Home() {
               style={{
                 color: isMobile ? "#bbbbbb" : "#666",
                 fontWeight: "normal",
-                marginBottom: "12px",
+                marginBottom: isMobile ? "0" : "12px",
                 fontSize: isMobile ? "12px" : "16px",
                 lineHeight: "1.2",
                 whiteSpace: isMobile ? "nowrap" : "normal",
@@ -398,39 +398,48 @@ export default function Home() {
             </h3>
           </div>
 
-          {/* SAVED ICON */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* SEARCH BAR + SAVED - Full width on mobile */}
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "12px",
+            flexDirection: isMobile ? "column" : "row",
+            width: isMobile ? "100%" : "auto",
+            marginTop: isMobile ? "10px" : "0",
+          }}>
             {/* SEARCH BAR */}
-            <form onSubmit={handleSearch} style={{ display: "flex" }}>
+            <form onSubmit={handleSearch} style={{ display: "flex", width: isMobile ? "100%" : "auto" }}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isMobile ? "Search..." : "Search articles..."}
+                placeholder="Search for NVIDIA, Bitcoin, AI..."
                 style={{
-                  padding: isMobile ? "8px 10px" : "8px 14px",
-                  fontSize: "14px",
-                  border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                  flex: 1,
+                  padding: isMobile ? "12px 14px" : "10px 14px",
+                  fontSize: isMobile ? "16px" : "14px",
+                  border: isMobile ? "1px solid #444" : "2px solid #ddd",
                   borderRadius: "8px 0 0 8px",
                   background: isMobile ? "#1a1a1a" : "white",
                   color: isMobile ? "#e0e0e0" : "#333",
                   outline: "none",
-                  width: isMobile ? "120px" : "200px",
+                  width: isMobile ? "100%" : "220px",
                 }}
               />
               <button
                 type="submit"
                 style={{
-                  padding: "8px 12px",
+                  padding: isMobile ? "12px 20px" : "10px 16px",
                   background: "#0066cc",
                   color: "white",
                   border: "none",
                   borderRadius: "0 8px 8px 0",
                   cursor: "pointer",
-                  fontSize: "14px",
+                  fontSize: isMobile ? "16px" : "14px",
+                  fontWeight: "600",
                 }}
               >
-                🔍
+                Search
               </button>
             </form>
 
@@ -703,7 +712,7 @@ export default function Home() {
             marginBottom: "40px",
             maxWidth: isMobile ? "100%" : "1600px",
             margin: "0 auto 40px auto",
-            padding: isMobile ? "0 10px" : "0 20px",
+            padding: isMobile ? "0 15px" : "0 20px",
           }}
         >
           <div
@@ -745,7 +754,7 @@ export default function Home() {
                   {isMobile ? (
                     <>
                       {/* Mobile: Image with dots */}
-                      <div style={{ position: "relative", width: "100%", height: "350px", overflow: "hidden" }}>
+                      <div style={{ position: "relative", width: "100%", height: "220px", overflow: "hidden" }}>
                         <img
                           src={article.image_url}
                           alt="slide"
@@ -781,7 +790,7 @@ export default function Home() {
                       </div>
 
                       {/* Mobile: Text section */}
-                      <div style={{ background: "#1a1a1a", padding: "20px", color: "white", minHeight: "200px" }}>
+                      <div style={{ background: "#1a1a1a", padding: "15px", color: "white", minHeight: "150px" }}>
                         <a
                           href={article.source_url}
                           target="_blank"
@@ -789,18 +798,18 @@ export default function Home() {
                           style={{
                             color: "white",
                             textDecoration: "none",
-                            fontSize: "18px",
+                            fontSize: "16px",
                             fontWeight: "700",
                             display: "block",
-                            marginBottom: "10px",
+                            marginBottom: "8px",
                             lineHeight: "1.3",
                           }}
                         >
                           {article.title}
                         </a>
 
-                        <p style={{ color: "#aaa", fontSize: "13px", lineHeight: "1.5", marginBottom: "12px" }}>
-                          {article.summary.substring(0, 100)}...
+                        <p style={{ color: "#aaa", fontSize: "12px", lineHeight: "1.4", marginBottom: "10px" }}>
+                          {article.summary.substring(0, 80)}...
                         </p>
 
                         <div style={{ marginBottom: "10px" }}>
