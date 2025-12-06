@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 // Clean publisher name
 function getSourceName(url) {
@@ -12,6 +13,7 @@ function getSourceName(url) {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [categories, setCategories] = useState([]);
   const [featuredArticles, setFeaturedArticles] = useState([]);
   const [listArticles, setListArticles] = useState([]);
@@ -26,9 +28,20 @@ export default function Home() {
   const scrollPositionRef = useRef(0);
   const isTopPaginationRef = useRef(false);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Save functionality only
   const [savedArticles, setSavedArticles] = useState([]);
   const [showSavedDropdown, setShowSavedDropdown] = useState(false);
+
+  // Handle search submit
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   // Load saved from localStorage on mount
   useEffect(() => {
@@ -386,42 +399,78 @@ export default function Home() {
           </div>
 
           {/* SAVED ICON */}
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setShowSavedDropdown(!showSavedDropdown)}
-              style={{
-                background: isMobile ? "#2a2a2a" : "#f0f0f0",
-                border: isMobile ? "1px solid #444" : "1px solid #ddd",
-                borderRadius: "8px",
-                padding: "8px 12px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "14px",
-                color: isMobile ? "#e0e0e0" : "#333",
-              }}
-            >
-              🔖 <span style={{ fontWeight: "600" }}>{savedArticles.length}</span>
-            </button>
-
-            {/* SAVED DROPDOWN */}
-            {showSavedDropdown && (
-              <div
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {/* SEARCH BAR */}
+            <form onSubmit={handleSearch} style={{ display: "flex" }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={isMobile ? "Search..." : "Search articles..."}
                 style={{
-                  position: "absolute",
-                  top: "45px",
-                  right: "0",
-                  width: isMobile ? "300px" : "400px",
-                  maxHeight: "500px",
-                  overflowY: "auto",
+                  padding: isMobile ? "8px 10px" : "8px 14px",
+                  fontSize: "14px",
+                  border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                  borderRadius: "8px 0 0 8px",
                   background: isMobile ? "#1a1a1a" : "white",
-                  border: isMobile ? "1px solid #333" : "1px solid #ddd",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-                  zIndex: 1000,
+                  color: isMobile ? "#e0e0e0" : "#333",
+                  outline: "none",
+                  width: isMobile ? "120px" : "200px",
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: "8px 12px",
+                  background: "#0066cc",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "0 8px 8px 0",
+                  cursor: "pointer",
+                  fontSize: "14px",
                 }}
               >
+                🔍
+              </button>
+            </form>
+
+            {/* SAVED BUTTON */}
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowSavedDropdown(!showSavedDropdown)}
+                style={{
+                  background: isMobile ? "#2a2a2a" : "#f0f0f0",
+                  border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "14px",
+                  color: isMobile ? "#e0e0e0" : "#333",
+                }}
+              >
+                🔖 <span style={{ fontWeight: "600" }}>{savedArticles.length}</span>
+              </button>
+
+              {/* SAVED DROPDOWN */}
+              {showSavedDropdown && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "45px",
+                    right: "0",
+                    width: isMobile ? "300px" : "400px",
+                    maxHeight: "500px",
+                    overflowY: "auto",
+                    background: isMobile ? "#1a1a1a" : "white",
+                    border: isMobile ? "1px solid #333" : "1px solid #ddd",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                    zIndex: 1000,
+                  }}
+                >
                 <div
                   style={{
                     padding: "12px 16px",
@@ -504,12 +553,13 @@ export default function Home() {
               </div>
             )}
           </div>
+          </div>
         </div>
 
         {/* CATEGORY PILLS */}
         <div
           style={{
-            marginBottom: "10px",
+            marginBottom: "20px",
             display: "flex",
             gap: "10px",
             overflowX: "auto",
@@ -569,7 +619,7 @@ export default function Home() {
           ))}
         </div>
 
-        {/* TOP PAGINATION - Hidden on mobile 
+        {/* TOP PAGINATION - Hidden on mobile */}
         {!isMobile && (
           <div
             style={{
@@ -636,11 +686,11 @@ export default function Home() {
               </a>
             )}
           </div>
-        )}*/}
-      </div> 
+        )}
+      </div>
 
       {loading && (
-        <p style={{ textAlign: "center", padding: "20px", color: isMobile ? "#e0e0e0" : "#000" }}>
+        <p style={{ textAlign: "center", padding: "40px", color: isMobile ? "#e0e0e0" : "#000" }}>
           Loading...
         </p>
       )}
@@ -650,7 +700,7 @@ export default function Home() {
         <div
           style={{
             position: "relative",
-            marginBottom: "20px",
+            marginBottom: "40px",
             maxWidth: isMobile ? "100%" : "1600px",
             margin: "0 auto 40px auto",
             padding: isMobile ? "0 10px" : "0 20px",
