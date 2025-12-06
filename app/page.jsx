@@ -377,109 +377,64 @@ export default function Home() {
     >
       {/* HEADER */}
       <div style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <h1 style={{ fontSize: isMobile ? "22px" : "32px", marginBottom: "8px" }}>
+            <h3 style={{ fontSize: isMobile ? "22px" : "32px", marginBottom: "8px" }}>
               Tech Mood Dashboard
-            </h1>
+            </h3>
             <h3
               style={{
                 color: isMobile ? "#bbbbbb" : "#666",
                 fontWeight: "normal",
-                marginBottom: isMobile ? "0" : "12px",
-                fontSize: isMobile ? "12px" : "16px",
+                marginBottom: "12px",
+                fontSize: isMobile ? "11px" : "16px",
                 lineHeight: "1.2",
                 whiteSpace: isMobile ? "nowrap" : "normal",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
               }}
             >
-              Real-time sentiment analysis of technology news
+              {/* Real-time sentiment analysis of technology news*/}
             </h3>
           </div>
 
-          {/* SEARCH BAR + SAVED - Full width on mobile */}
-          <div style={{ 
-            display: "flex", 
-            alignItems: "center", 
-            gap: "12px",
-            flexDirection: isMobile ? "column" : "row",
-            width: isMobile ? "100%" : "auto",
-            marginTop: isMobile ? "10px" : "0",
-          }}>
-            {/* SEARCH BAR */}
-            <form onSubmit={handleSearch} style={{ display: "flex", width: isMobile ? "100%" : "auto" }}>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search for NVIDIA, Bitcoin, AI..."
+          {/* SAVED BUTTON */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowSavedDropdown(!showSavedDropdown)}
+              style={{
+                background: isMobile ? "#2a2a2a" : "#f0f0f0",
+                border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "14px",
+                color: isMobile ? "#e0e0e0" : "#333",
+              }}
+            >
+              🔖 <span style={{ fontWeight: "600" }}>{savedArticles.length}</span>
+            </button>
+
+            {/* SAVED DROPDOWN */}
+            {showSavedDropdown && (
+              <div
                 style={{
-                  flex: 1,
-                  padding: isMobile ? "12px 14px" : "10px 14px",
-                  fontSize: isMobile ? "16px" : "14px",
-                  border: isMobile ? "1px solid #444" : "2px solid #ddd",
-                  borderRadius: "8px 0 0 8px",
+                  position: "absolute",
+                  top: "45px",
+                  right: "0",
+                  width: isMobile ? "300px" : "400px",
+                  maxHeight: "500px",
+                  overflowY: "auto",
                   background: isMobile ? "#1a1a1a" : "white",
-                  color: isMobile ? "#e0e0e0" : "#333",
-                  outline: "none",
-                  width: isMobile ? "100%" : "220px",
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  padding: isMobile ? "12px 20px" : "10px 16px",
-                  background: "#0066cc",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "0 8px 8px 0",
-                  cursor: "pointer",
-                  fontSize: isMobile ? "16px" : "14px",
-                  fontWeight: "600",
-                }}
-              >
-                Search
-              </button>
-            </form>
-
-            {/* SAVED BUTTON */}
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => setShowSavedDropdown(!showSavedDropdown)}
-                style={{
-                  background: isMobile ? "#2a2a2a" : "#f0f0f0",
-                  border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                  border: isMobile ? "1px solid #333" : "1px solid #ddd",
                   borderRadius: "8px",
-                  padding: "8px 12px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "14px",
-                  color: isMobile ? "#e0e0e0" : "#333",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                  zIndex: 1000,
                 }}
               >
-                🔖 <span style={{ fontWeight: "600" }}>{savedArticles.length}</span>
-              </button>
-
-              {/* SAVED DROPDOWN */}
-              {showSavedDropdown && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "45px",
-                    right: "0",
-                    width: isMobile ? "300px" : "400px",
-                    maxHeight: "500px",
-                    overflowY: "auto",
-                    background: isMobile ? "#1a1a1a" : "white",
-                    border: isMobile ? "1px solid #333" : "1px solid #ddd",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-                    zIndex: 1000,
-                  }}
-                >
                 <div
                   style={{
                     padding: "12px 16px",
@@ -562,18 +517,17 @@ export default function Home() {
               </div>
             )}
           </div>
-          </div>
         </div>
 
         {/* CATEGORY PILLS */}
         <div
           style={{
-            marginBottom: "20px",
+            marginBottom: "15px",
             display: "flex",
-            gap: "10px",
+            gap: isMobile ? "6px" : "8px",
             overflowX: "auto",
             whiteSpace: "nowrap",
-            paddingBottom: "10px",
+            paddingBottom: "8px",
           }}
         >
           <div
@@ -582,16 +536,16 @@ export default function Home() {
               setCurrentPage(1);
             }}
             style={{
-              padding: isMobile ? "6px 10px" : "8px 16px",
-              fontSize: isMobile ? "12px" : "14px",
+              padding: isMobile ? "4px 8px" : "6px 12px",
+              fontSize: isMobile ? "11px" : "12px",
               background: isMobile
                 ? selectedCategory === null ? "#3a3a3a" : "#2a2a2a"
                 : selectedCategory === null ? "#0066cc" : "white",
               color: isMobile
                 ? "#e0e0e0"
                 : selectedCategory === null ? "white" : "#333",
-              border: isMobile ? "1px solid #444" : "2px solid #0066cc",
-              borderRadius: isMobile ? "4px" : "20px",
+              border: isMobile ? "1px solid #444" : "1px solid #0066cc",
+              borderRadius: isMobile ? "4px" : "15px",
               cursor: "pointer",
               fontWeight: "600",
               display: "inline-block",
@@ -608,16 +562,16 @@ export default function Home() {
                 setCurrentPage(1);
               }}
               style={{
-                padding: isMobile ? "6px 10px" : "8px 16px",
-                fontSize: isMobile ? "12px" : "14px",
+                padding: isMobile ? "4px 8px" : "6px 12px",
+                fontSize: isMobile ? "11px" : "12px",
                 background: isMobile
                   ? selectedCategory === cat ? "#3a3a3a" : "#2a2a2a"
                   : selectedCategory === cat ? "#0066cc" : "white",
                 color: isMobile
                   ? "#e0e0e0"
                   : selectedCategory === cat ? "white" : "#333",
-                border: isMobile ? "1px solid #444" : "2px solid #0066cc",
-                borderRadius: isMobile ? "4px" : "20px",
+                border: isMobile ? "1px solid #444" : "1px solid #0066cc",
+                borderRadius: isMobile ? "4px" : "15px",
                 cursor: "pointer",
                 fontWeight: "600",
                 display: "inline-block",
@@ -628,74 +582,42 @@ export default function Home() {
           ))}
         </div>
 
-        {/* TOP PAGINATION - Hidden on mobile */}
-        {!isMobile && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "15px",
-              marginBottom: "20px",
-              fontSize: "14px",
-              color: "#666",
-            }}
-          >
-            {currentPage > 1 && (
-              <a
-                href="#"
-                onClick={(e) => { e.preventDefault(); prevPageTop(); }}
-                style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}
-              >
-                &lt; Previous
-              </a>
-            )}
-
-            {(() => {
-              const pages = [];
-              if (currentPage > 3) {
-                pages.push(
-                  <a key={1} href="#" onClick={(e) => { e.preventDefault(); goToPageTop(1); }}
-                    style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}>1</a>
-                );
-                if (currentPage > 4) pages.push(<span key="dots1">...</span>);
-              }
-
-              const start = Math.max(1, currentPage - 2);
-              const end = Math.min(totalPages, currentPage + 2);
-
-              for (let i = start; i <= end; i++) {
-                if (i === currentPage) {
-                  pages.push(<strong key={i} style={{ color: "#000" }}>{i}</strong>);
-                } else {
-                  pages.push(
-                    <a key={i} href="#" onClick={(e) => { e.preventDefault(); goToPageTop(i); }}
-                      style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}>{i}</a>
-                  );
-                }
-              }
-
-              if (currentPage < totalPages - 2) {
-                if (currentPage < totalPages - 3) pages.push(<span key="dots2">...</span>);
-                pages.push(
-                  <a key={totalPages} href="#" onClick={(e) => { e.preventDefault(); goToPageTop(totalPages); }}
-                    style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}>{totalPages}</a>
-                );
-              }
-              return pages;
-            })()}
-
-            {currentPage < totalPages && (
-              <a
-                href="#"
-                onClick={(e) => { e.preventDefault(); nextPageTop(); }}
-                style={{ color: "#1a0dab", textDecoration: "none", cursor: "pointer" }}
-              >
-                Next &gt;
-              </a>
-            )}
+        {/* SEARCH BAR - Full width like search page */}
+        <form onSubmit={handleSearch} style={{ marginBottom: "20px" }}>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search for NVIDIA, Bitcoin, AI, etc..."
+              style={{
+                flex: 1,
+                padding: isMobile ? "12px 14px" : "14px 18px",
+                fontSize: isMobile ? "15px" : "16px",
+                border: isMobile ? "1px solid #444" : "2px solid #ddd",
+                borderRadius: "8px",
+                background: isMobile ? "#1a1a1a" : "white",
+                color: isMobile ? "#e0e0e0" : "#333",
+                outline: "none",
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                padding: isMobile ? "12px 20px" : "14px 28px",
+                fontSize: isMobile ? "15px" : "16px",
+                background: "#0066cc",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              Search
+            </button>
           </div>
-        )}
+        </form>
       </div>
 
       {loading && (
