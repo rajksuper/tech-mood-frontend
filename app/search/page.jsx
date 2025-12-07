@@ -27,6 +27,7 @@ function SearchContent() {
   const [isMobile, setIsMobile] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [correctedQuery, setCorrectedQuery] = useState(null);
+  const [activeSearchTerm, setActiveSearchTerm] = useState(null);
 
   // Mark component as mounted and inject mobile styles
   useEffect(() => {
@@ -104,6 +105,13 @@ function SearchContent() {
       setHasMore(json.has_more || false);
       setCurrentPage(page);
       setCorrectedQuery(json.corrected_query || null);
+      
+      // Store the corrected query for pagination
+      if (json.corrected_query) {
+        setActiveSearchTerm(json.corrected_query);
+      } else if (page === 0) {
+        setActiveSearchTerm(searchQuery.toLowerCase());
+      }
     } catch (err) {
       console.error("Search error:", err);
       setArticles([]);
@@ -121,13 +129,17 @@ function SearchContent() {
   };
 
   const nextPage = () => {
-    performSearch(query || searchInput, currentPage + 1);
+    // Use corrected query for pagination
+    const searchTerm = activeSearchTerm || correctedQuery || query || searchInput;
+    performSearch(searchTerm, currentPage + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const prevPage = () => {
     if (currentPage > 0) {
-      performSearch(query || searchInput, currentPage - 1);
+      // Use corrected query for pagination
+      const searchTerm = activeSearchTerm || correctedQuery || query || searchInput;
+      performSearch(searchTerm, currentPage - 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
@@ -214,13 +226,13 @@ function SearchContent() {
                 marginBottom: "8px",
                 fontSize: "14px" 
               }}>
-                🤖 Showing results for "<strong>{correctedQuery}</strong>" instead of "{query}"
+                🤖 Showing results for "<strong>{correctedQuery}</strong>"
               </p>
             )}
             <p style={{ color: isMobile ? "#aaa" : "#666" }}>
               {totalCount > 0
-                ? `Found ${totalCount} results${correctedQuery ? ` for "${correctedQuery}"` : ` for "${query}"`}`
-                : `No results found for "${query}"`}
+                ? `Found ${totalCount} results for "${correctedQuery || query}"`
+                : `No results found for "${correctedQuery || query}"`}
             </p>
           </div>
         )}
