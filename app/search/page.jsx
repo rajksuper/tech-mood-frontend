@@ -26,6 +26,7 @@ function SearchContent() {
   const [hasMore, setHasMore] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [correctedQuery, setCorrectedQuery] = useState(null);
 
   // Mark component as mounted and inject mobile styles
   useEffect(() => {
@@ -102,9 +103,11 @@ function SearchContent() {
       setTotalCount(json.count || 0);
       setHasMore(json.has_more || false);
       setCurrentPage(page);
+      setCorrectedQuery(json.corrected_query || null);
     } catch (err) {
       console.error("Search error:", err);
       setArticles([]);
+      setCorrectedQuery(null);
     }
     setLoading(false);
   };
@@ -204,11 +207,22 @@ function SearchContent() {
 
         {/* Results Info */}
         {query && !loading && (
-          <p style={{ marginBottom: "20px", color: isMobile ? "#aaa" : "#666" }}>
-            {totalCount > 0
-              ? `Found ${totalCount} results for "${query}"`
-              : `No results found for "${query}"`}
-          </p>
+          <div style={{ marginBottom: "20px" }}>
+            {correctedQuery && (
+              <p style={{ 
+                color: isMobile ? "#4da3ff" : "#0066cc", 
+                marginBottom: "8px",
+                fontSize: "14px" 
+              }}>
+                🤖 Showing results for "<strong>{correctedQuery}</strong>" instead of "{query}"
+              </p>
+            )}
+            <p style={{ color: isMobile ? "#aaa" : "#666" }}>
+              {totalCount > 0
+                ? `Found ${totalCount} results${correctedQuery ? ` for "${correctedQuery}"` : ` for "${query}"`}`
+                : `No results found for "${query}"`}
+            </p>
+          </div>
         )}
 
         {/* Loading */}

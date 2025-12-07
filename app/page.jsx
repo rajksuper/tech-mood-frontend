@@ -381,7 +381,7 @@ export default function Home() {
       {/* HEADER */}
       <div style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div alignItems="flex-start">
+          <div>
             <h1 style={{ fontSize: isMobile ? "22px" : "32px", marginBottom: "8px" }}>
               Tech Mood 
             </h1>
@@ -594,7 +594,7 @@ export default function Home() {
           </div>
         </div>
 
-      {/* SEARCH BAR - Google/MSN style with icon inside */}
+        {/* SEARCH BAR - Google/MSN style with icon inside */}
         <form onSubmit={handleSearch} style={{ marginBottom: "20px", position: "relative" }}>
           <input
             type="text"
@@ -631,7 +631,6 @@ export default function Home() {
             🔍
           </button>
         </form>
-
       </div>
 
       {loading && (
@@ -694,7 +693,7 @@ export default function Home() {
                         <img
                           src={article.image_url}
                           alt="slide"
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }}
                         />
                         <div
                           style={{
