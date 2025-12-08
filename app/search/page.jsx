@@ -81,6 +81,9 @@ function SearchContent() {
       
       const allArticles = json.articles || [];
       
+      // Responsive: 12 articles on mobile, 24 on desktop
+      const articlesPerPage = isMobile ? 12 : 24;
+      
       // Separate articles with and without images
       const withImages = allArticles.filter(a => a.image_url);
       const withoutImages = allArticles.filter(a => !a.image_url);
@@ -89,18 +92,18 @@ function SearchContent() {
       const alternated = [];
       const maxLen = Math.max(withImages.length, withoutImages.length);
       
-      for (let i = 0; i < maxLen && alternated.length < 24; i++) {
+      for (let i = 0; i < maxLen && alternated.length < articlesPerPage; i++) {
         if (withImages[i]) alternated.push(withImages[i]);
-        if (withoutImages[i] && alternated.length < 24) alternated.push(withoutImages[i]);
+        if (withoutImages[i] && alternated.length < articlesPerPage) alternated.push(withoutImages[i]);
       }
       
-      // If we don't have 24 yet, fill with remaining
-      if (alternated.length < 24) {
+      // If we don't have enough yet, fill with remaining
+      if (alternated.length < articlesPerPage) {
         const remaining = allArticles.filter(a => !alternated.includes(a));
-        alternated.push(...remaining.slice(0, 24 - alternated.length));
+        alternated.push(...remaining.slice(0, articlesPerPage - alternated.length));
       }
       
-      setArticles(alternated.slice(0, 24));
+      setArticles(alternated.slice(0, articlesPerPage));
       setTotalCount(json.count || 0);
       setHasMore(json.has_more || false);
       setCurrentPage(page);
@@ -111,6 +114,15 @@ function SearchContent() {
         setActiveSearchTerm(json.corrected_query);
       } else if (page === 0) {
         setActiveSearchTerm(searchQuery.toLowerCase());
+      }
+      
+      // Prefetch next page in background
+      if (json.has_more) {
+        const nextPageNum = page + 1;
+        const prefetchTerm = json.corrected_query || searchQuery;
+        fetch(
+          `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(prefetchTerm)}&page=${nextPageNum}&limit=50`
+        ).then(() => console.log(`Prefetched search page ${nextPageNum + 1}`)).catch(() => {});
       }
     } catch (err) {
       console.error("Search error:", err);

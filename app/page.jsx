@@ -253,6 +253,10 @@ export default function Home() {
 
   // Process and display articles
   const processArticles = (allArticles) => {
+    // Responsive: 12 articles on mobile, 24 on desktop
+    const articlesPerPage = isMobile ? 12 : 24;
+    const halfCount = articlesPerPage / 2;
+    
     // Sort by published_at DESC (newest first)
     const sorted = allArticles.sort((a, b) => 
       new Date(b.published_at) - new Date(a.published_at)
@@ -262,12 +266,12 @@ export default function Home() {
     const withImages = sorted.filter((a) => a.image_url);
     const withoutImages = sorted.filter((a) => !a.image_url);
 
-    // Take first 12 of each (newest), then shuffle for display variety
-    const top12Images = withImages.slice(0, 12).sort(() => Math.random() - 0.5);
-    const top12Text = withoutImages.slice(0, 12).sort(() => Math.random() - 0.5);
+    // Take half of each (newest), then shuffle for display variety
+    const topImages = withImages.slice(0, halfCount).sort(() => Math.random() - 0.5);
+    const topText = withoutImages.slice(0, halfCount).sort(() => Math.random() - 0.5);
 
-    setFeaturedArticles(top12Images);
-    setListArticles(top12Text);
+    setFeaturedArticles(topImages);
+    setListArticles(topText);
     setLoading(false);
   };
 
