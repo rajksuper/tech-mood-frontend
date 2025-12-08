@@ -81,8 +81,23 @@ function SearchContent() {
       
       const allArticles = json.articles || [];
       
-      // Responsive: 12 articles on mobile, 24 on desktop
-      const articlesPerPage = isMobile ? 12 : 24;
+      // Check device type directly (state might not be set yet on initial load)
+      let articlesPerPage = 24; // Default desktop
+      
+      if (typeof window !== 'undefined') {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const isPortrait = height > width;
+        
+        // Mobile: < 768px
+        // Tablet Portrait: 768-1024px and height > width
+        // Tablet Landscape & Desktop: > 768px and width > height, or > 1024px
+        if (width < 768 || (width <= 1024 && isPortrait)) {
+          articlesPerPage = 12; // Mobile & Tablet Portrait
+        } else {
+          articlesPerPage = 24; // Tablet Landscape & Desktop
+        }
+      }
       
       // Separate articles with and without images
       const withImages = allArticles.filter(a => a.image_url);
