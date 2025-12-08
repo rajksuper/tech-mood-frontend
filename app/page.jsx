@@ -12,6 +12,66 @@ function getSourceName(url) {
   }
 }
 
+// ============ SEEN ARTICLES TRACKING (NEW) ============
+const getSeenArticles = () => {
+  if (typeof window === 'undefined') return [];
+  return JSON.parse(localStorage.getItem('seenArticles') || '[]');
+};
+
+const markAsSeen = (articleId) => {
+  if (typeof window === 'undefined') return;
+  const seen = getSeenArticles();
+  if (!seen.includes(articleId)) {
+    seen.push(articleId);
+    localStorage.setItem('seenArticles', JSON.stringify(seen));
+  }
+};
+
+const filterFreshArticles = (articles) => {
+  const seen = getSeenArticles();
+  return articles.filter(article => !seen.includes(article.id));
+};
+
+// Clean up old seen articles (keep only last 2000 for 7000+ articles)
+const cleanupOldSeen = () => {
+  if (typeof window === 'undefined') return;
+  const seen = getSeenArticles();
+  if (seen.length > 2000) {
+    const trimmed = seen.slice(-2000);
+    localStorage.setItem('seenArticles', JSON.stringify(trimmed));
+  }
+};
+
+// Clear all seen articles
+const clearAllSeen = () => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('seenArticles');
+};
+
+// ============ INTERSECTION OBSERVER HOOK (NEW) ============
+const useTrackView = (articleId) => {
+  const ref = useRef();
+  
+  useEffect(() => {
+    if (!ref.current || !articleId) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          markAsSeen(articleId);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [articleId]);
+  
+  return ref;
+};
+
 export default function Home() {
   const router = useRouter();
   const [categories, setCategories] = useState([]);
@@ -38,6 +98,10 @@ export default function Home() {
   // Category dropdown
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
+  // Fresh content state (NEW)
+  const [showFreshOnly, setShowFreshOnly] = useState(true);
+  const [seenCount, setSeenCount] = useState(0);
+
   // Handle search submit
   const handleSearch = (e) => {
     e.preventDefault();
@@ -50,6 +114,10 @@ export default function Home() {
   useEffect(() => {
     const storedSaved = localStorage.getItem('savedArticles');
     if (storedSaved) setSavedArticles(JSON.parse(storedSaved));
+    
+    // Cleanup old seen articles
+    cleanupOldSeen();
+    setSeenCount(getSeenArticles().length);
   }, []);
 
   // Save article (bookmark only, doesn't hide)
@@ -80,6 +148,19 @@ export default function Home() {
     } else {
       saveArticle(article);
     }
+  };
+
+  // Reset seen articles (NEW)
+  const handleResetSeen = () => {
+    clearAllSeen();
+    setSeenCount(0);
+    setShowFreshOnly(true);
+    loadArticles();
+  };
+
+  // Toggle fresh/all (NEW)
+  const toggleFreshMode = () => {
+    setShowFreshOnly(!showFreshOnly);
   };
 
   // Mark component as mounted and inject mobile styles
@@ -148,7 +229,7 @@ export default function Home() {
   useEffect(() => {
     loadArticles();
     calculateTotalPages();
-  }, [selectedCategory, currentPage]);
+  }, [selectedCategory, currentPage, showFreshOnly]);
 
   // Prefetch next page after current page loads
   useEffect(() => {
@@ -251,7 +332,7 @@ export default function Home() {
       .catch(() => setLoading(false));
   };
 
-  // Process and display articles
+  // Process and display articles (UPDATED with fresh filter)
   const processArticles = (allArticles) => {
     // Check device type directly (state might not be set yet on initial load)
     let articlesPerPage = 24; // Default desktop
@@ -278,9 +359,12 @@ export default function Home() {
       new Date(b.published_at) - new Date(a.published_at)
     );
 
+    // Apply fresh filter if enabled (NEW)
+    const articlesToShow = showFreshOnly ? filterFreshArticles(sorted) : sorted;
+
     // Separate: articles with images vs without
-    const withImages = sorted.filter((a) => a.image_url);
-    const withoutImages = sorted.filter((a) => !a.image_url);
+    const withImages = articlesToShow.filter((a) => a.image_url);
+    const withoutImages = articlesToShow.filter((a) => !a.image_url);
 
     // Take half of each (newest), then shuffle for display variety
     const topImages = withImages.slice(0, halfCount).sort(() => Math.random() - 0.5);
@@ -289,6 +373,9 @@ export default function Home() {
     setFeaturedArticles(topImages);
     setListArticles(topText);
     setLoading(false);
+    
+    // Update seen count
+    setSeenCount(getSeenArticles().length);
   };
 
   // Clear cache when category changes
@@ -389,6 +476,392 @@ export default function Home() {
     }
   };
 
+  // ============ TRACKABLE ARTICLE COMPONENTS (NEW) ============
+  const TrackableCarouselSlide = ({ article, index, isActive, isSaved, borderColor }) => {
+    const trackRef = useTrackView(isActive ? article.id : null);
+    
+    return (
+      <div
+        ref={trackRef}
+        key={article.id}
+        style={{
+          position: index === 0 ? "relative" : "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          opacity: isActive ? 1 : 0,
+          transition: "opacity 0.5s ease-in-out",
+          pointerEvents: isActive ? "auto" : "none",
+          visibility: isActive ? "visible" : "hidden",
+        }}
+      >
+        {isMobile ? (
+          <>
+            {/* Mobile: Image with dots */}
+            <div style={{ position: "relative", width: "100%", height: "220px", overflow: "hidden" }}>
+              <img
+                src={article.image_url}
+                alt="slide"
+                style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "15px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  display: "flex",
+                  gap: "8px",
+                  zIndex: 10,
+                }}
+              >
+                {featuredArticles.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    style={{
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      border: "none",
+                      background: idx === currentSlide ? "white" : "rgba(255,255,255,0.5)",
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile: Text section */}
+            <div style={{ background: "#1a1a1a", padding: "15px", color: "white", minHeight: "150px" }}>
+              <a
+                href={article.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "white",
+                  textDecoration: "none",
+                  fontSize: "16px",
+                  fontWeight: "700",
+                  display: "block",
+                  marginBottom: "8px",
+                  lineHeight: "1.3",
+                }}
+              >
+                {article.title}
+              </a>
+
+              <p style={{ color: "#aaa", fontSize: "12px", lineHeight: "1.4", marginBottom: "10px" }}>
+                {article.summary.substring(0, 80)}...
+              </p>
+
+              <div style={{ marginBottom: "10px" }}>
+                <span style={{ color: "#4a9eff", fontSize: "12px", fontWeight: "600", marginRight: "10px" }}>
+                  {getSourceName(article.source_url)}
+                </span>
+                <span
+                  style={{
+                    background: "#2d2d2d",
+                    color: "#4a9eff",
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    fontSize: "10px",
+                    fontWeight: "600",
+                  }}
+                >
+                  {article.category}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ color: "#888" }}>
+                    {article.published_at
+                      ? new Date(article.published_at).toLocaleString("en-US", {
+                          month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                        })
+                      : ""}
+                  </span>
+                  <span
+                    style={{
+                      background: borderColor,
+                      color: "white",
+                      padding: "4px 12px",
+                      borderRadius: "10px",
+                      fontWeight: "700",
+                      fontSize: "10px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {article.sentiment_label}
+                  </span>
+                </div>
+
+                {/* Save button */}
+                <button
+                  onClick={() => toggleSave(article)}
+                  style={{
+                    background: isSaved ? "#4a9eff" : "none",
+                    border: "1px solid #444",
+                    borderRadius: "4px",
+                    padding: "4px 8px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    color: isSaved ? "white" : "#aaa",
+                  }}
+                  title={isSaved ? "Remove from saved" : "Save for later"}
+                >
+                  🔖
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Desktop: Image with overlay */}
+            <div style={{ position: "relative", width: "100%", height: "500px", overflow: "hidden" }}>
+              <img
+                src={article.image_url}
+                alt="slide"
+                style={{ width: "100%", height: "100%", objectFit: "contain", objectPosition: "center", background: "#000" }}
+              />
+
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 100%)",
+                }}
+              />
+
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "30px 40px", color: "#e0e0e0" }}>
+                {/* Sentiment + Category badges */}
+                <div style={{ marginBottom: "12px" }}>
+                  <span
+                    style={{
+                      background: borderColor,
+                      color: "white",
+                      padding: "7px 18px",
+                      borderRadius: "20px",
+                      fontSize: "13px",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      marginRight: "12px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    {article.sentiment_label}
+                  </span>
+                  <span
+                    style={{
+                      background: "#e3f2fd",
+                      color: "#1976d2",
+                      padding: "7px 18px",
+                      borderRadius: "20px",
+                      fontSize: "13px",
+                      fontWeight: "700",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    {article.category}
+                  </span>
+                </div>
+
+                <a
+                  href={article.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: "#ffffff",
+                    textDecoration: "none",
+                    fontSize: "24px",
+                    fontWeight: "700",
+                    display: "block",
+                    marginBottom: "12px",
+                    lineHeight: "1.2",
+                    textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  {article.title}
+                </a>
+
+                <p
+                  style={{
+                    color: "#cccccc",
+                    fontSize: "15px",
+                    lineHeight: "1.5",
+                    marginBottom: "15px",
+                    maxWidth: "800px",
+                  }}
+                >
+                  {article.summary?.substring(0, 180)}...
+                </p>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                    <span style={{ color: "#4a9eff", fontWeight: "600", fontSize: "14px" }}>
+                      {getSourceName(article.source_url)}
+                    </span>
+                    <span style={{ color: "#888", fontSize: "13px" }}>
+                      {article.published_at
+                        ? new Date(article.published_at).toLocaleString("en-US", {
+                            month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
+                          })
+                        : ""}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => toggleSave(article)}
+                    style={{
+                      background: isSaved ? "#4a9eff" : "rgba(255,255,255,0.1)",
+                      border: "1px solid rgba(255,255,255,0.3)",
+                      borderRadius: "6px",
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      color: "white",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                    title={isSaved ? "Remove from saved" : "Save for later"}
+                  >
+                    🔖 {isSaved ? "Saved" : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // Trackable list article component (NEW)
+  const TrackableListArticle = ({ item }) => {
+    const trackRef = useTrackView(item.id);
+    const borderColor = getBorderColor(item.sentiment_label);
+    const isSaved = isArticleSaved(item.id);
+
+    return (
+      <div
+        ref={trackRef}
+        style={{
+          borderLeft: `4px solid ${borderColor}`,
+          padding: "16px",
+          background: isMobile ? "#1a1a1a" : "white",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          borderRadius: "4px",
+        }}
+      >
+        <a
+          href={item.source_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: isMobile ? "#4da3ff" : "#1a0dab",
+            textDecoration: "none",
+            fontSize: "18px",
+            fontWeight: "600",
+            display: "block",
+            marginBottom: "10px",
+            lineHeight: "1.4",
+          }}
+        >
+          {item.title}
+        </a>
+
+        <p
+          style={{
+            margin: "0 0 12px",
+            color: isMobile ? "#aaaaaa" : "#555",
+            fontSize: "14px",
+            lineHeight: "1.6",
+          }}
+        >
+          {item.summary}
+        </p>
+
+        <div style={{ marginBottom: "10px" }}>
+          <a
+            href={item.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: isMobile ? "#4da3ff" : "#0066cc",
+              textDecoration: "none",
+              fontSize: "13px",
+              fontWeight: "500",
+            }}
+          >
+            {getSourceName(item.source_url)}
+          </a>
+          {item.category && (
+            <span
+              style={{
+                marginLeft: "10px",
+                fontSize: "11px",
+                color: isMobile ? "#cccccc" : "#666",
+                background: isMobile ? "#2a2a2a" : "#f0f0f0",
+                padding: "2px 8px",
+                borderRadius: "4px",
+              }}
+            >
+              {item.category}
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ color: isMobile ? "#aaaaaa" : "#666" }}>
+              {item.published_at
+                ? new Date(item.published_at).toLocaleString("en-US", {
+                    month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
+                  })
+                : ""}
+            </span>
+
+            <span
+              style={{
+                background: borderColor,
+                color: "white",
+                padding: "4px 12px",
+                borderRadius: "12px",
+                fontWeight: "600",
+                fontSize: "11px",
+                textTransform: "uppercase",
+              }}
+            >
+              {item.sentiment_label}
+            </span>
+          </div>
+
+          <button
+            onClick={() => toggleSave(item)}
+            style={{
+              background: isSaved ? (isMobile ? "#4a9eff" : "#0066cc") : "none",
+              border: isMobile ? "1px solid #444" : "1px solid #ddd",
+              borderRadius: "4px",
+              padding: "4px 8px",
+              cursor: "pointer",
+              fontSize: "12px",
+              color: isSaved ? "white" : (isMobile ? "#aaa" : "#666"),
+            }}
+            title={isSaved ? "Remove from saved" : "Save for later"}
+          >
+            🔖
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       style={{
@@ -405,20 +878,6 @@ export default function Home() {
             <h1 style={{ fontSize: isMobile ? "22px" : "32px", marginBottom: "8px" }}>
               Tech Mood 
             </h1>
-          {/*  <h3
-              style={{
-                color: isMobile ? "#bbbbbb" : "#666",
-                fontWeight: "normal",
-                marginBottom: "12px",
-                fontSize: isMobile ? "11px" : "16px",
-                lineHeight: "1.2",
-                whiteSpace: isMobile ? "nowrap" : "normal",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              Real-time sentiment analysis of technology news
-            </h3> */}
           </div>
 
           {/* CATEGORY & SAVED BUTTONS */}
@@ -614,6 +1073,57 @@ export default function Home() {
           </div>
         </div>
 
+        {/* FRESH CONTENT TOGGLE BAR (NEW) */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "12px",
+            padding: "10px 14px",
+            background: isMobile ? "#1a1a1a" : "#f5f5f5",
+            borderRadius: "8px",
+            border: isMobile ? "1px solid #333" : "1px solid #e0e0e0",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "13px", color: isMobile ? "#aaa" : "#666" }}>
+              👁 {seenCount} seen
+            </span>
+            <button
+              onClick={toggleFreshMode}
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                background: showFreshOnly ? (isMobile ? "#2d5a2d" : "#e8f5e9") : (isMobile ? "#2a2a2a" : "#fff"),
+                color: showFreshOnly ? (isMobile ? "#90EE90" : "#2e7d32") : (isMobile ? "#aaa" : "#666"),
+                border: showFreshOnly ? "1px solid #4caf50" : (isMobile ? "1px solid #444" : "1px solid #ddd"),
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              {showFreshOnly ? "✓ Fresh Only" : "Show All"}
+            </button>
+          </div>
+          <button
+            onClick={handleResetSeen}
+            style={{
+              padding: "6px 12px",
+              fontSize: "12px",
+              background: isMobile ? "#2a2a2a" : "#fff",
+              color: isMobile ? "#aaa" : "#666",
+              border: isMobile ? "1px solid #444" : "1px solid #ddd",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            🔄 Reset Seen
+          </button>
+        </div>
+
         {/* SEARCH BAR - Google/MSN style with icon inside */}
         <form onSubmit={handleSearch} style={{ marginBottom: "20px", position: "relative" }}>
           <input
@@ -659,6 +1169,70 @@ export default function Home() {
         </p>
       )}
 
+      {/* NO FRESH ARTICLES MESSAGE (NEW) */}
+      {!loading && showFreshOnly && featuredArticles.length === 0 && listArticles.length === 0 && (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "60px 20px",
+            background: isMobile ? "#1a1a1a" : "#f9f9f9",
+            margin: "20px",
+            borderRadius: "12px",
+          }}
+        >
+          <h2 style={{ fontSize: "24px", marginBottom: "12px" }}>🎉 You're all caught up!</h2>
+          <p style={{ color: isMobile ? "#aaa" : "#666", marginBottom: "20px" }}>
+            You've seen all articles on this page. Try the next page or reset to see everything again.
+          </p>
+          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+            <button
+              onClick={() => setShowFreshOnly(false)}
+              style={{
+                padding: "12px 24px",
+                fontSize: "14px",
+                background: isMobile ? "#2a2a2a" : "#fff",
+                color: isMobile ? "#e0e0e0" : "#333",
+                border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}
+            >
+              Show All Articles
+            </button>
+            <button
+              onClick={handleResetSeen}
+              style={{
+                padding: "12px 24px",
+                fontSize: "14px",
+                background: "#0066cc",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}
+            >
+              🔄 Reset & Start Fresh
+            </button>
+            {currentPage < totalPages && (
+              <button
+                onClick={nextPageBottom}
+                style={{
+                  padding: "12px 24px",
+                  fontSize: "14px",
+                  background: "#0066cc",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                Next Page →
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* CAROUSEL */}
       {!loading && featuredArticles.length > 0 && (
         <div
@@ -693,271 +1267,34 @@ export default function Home() {
               const isSaved = isArticleSaved(article.id);
 
               return (
-                <div
+                <TrackableCarouselSlide
                   key={article.id}
-                  style={{
-                    position: index === 0 ? "relative" : "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    opacity: isActive ? 1 : 0,
-                    transition: "opacity 0.5s ease-in-out",
-                    pointerEvents: isActive ? "auto" : "none",
-                    visibility: isActive ? "visible" : "hidden",
-                  }}
-                >
-                  {isMobile ? (
-                    <>
-                      {/* Mobile: Image with dots */}
-                      <div style={{ position: "relative", width: "100%", height: "220px", overflow: "hidden" }}>
-                        <img
-                          src={article.image_url}
-                          alt="slide"
-                          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }}
-                        />
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: "15px",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            display: "flex",
-                            gap: "8px",
-                            zIndex: 10,
-                          }}
-                        >
-                          {featuredArticles.map((_, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => setCurrentSlide(idx)}
-                              style={{
-                                width: "8px",
-                                height: "8px",
-                                borderRadius: "50%",
-                                border: "none",
-                                background: idx === currentSlide ? "white" : "rgba(255,255,255,0.5)",
-                                cursor: "pointer",
-                                padding: 0,
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Mobile: Text section */}
-                      <div style={{ background: "#1a1a1a", padding: "15px", color: "white", minHeight: "150px" }}>
-                        <a
-                          href={article.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            color: "white",
-                            textDecoration: "none",
-                            fontSize: "16px",
-                            fontWeight: "700",
-                            display: "block",
-                            marginBottom: "8px",
-                            lineHeight: "1.3",
-                          }}
-                        >
-                          {article.title}
-                        </a>
-
-                        <p style={{ color: "#aaa", fontSize: "12px", lineHeight: "1.4", marginBottom: "10px" }}>
-                          {article.summary.substring(0, 80)}...
-                        </p>
-
-                        <div style={{ marginBottom: "10px" }}>
-                          <span style={{ color: "#4a9eff", fontSize: "12px", fontWeight: "600", marginRight: "10px" }}>
-                            {getSourceName(article.source_url)}
-                          </span>
-                          <span
-                            style={{
-                              background: "#2d2d2d",
-                              color: "#4a9eff",
-                              padding: "3px 8px",
-                              borderRadius: "4px",
-                              fontSize: "10px",
-                              fontWeight: "600",
-                            }}
-                          >
-                            {article.category}
-                          </span>
-                        </div>
-
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <span style={{ color: "#888" }}>
-                              {article.published_at
-                                ? new Date(article.published_at).toLocaleString("en-US", {
-                                    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                                  })
-                                : ""}
-                            </span>
-                            <span
-                              style={{
-                                background: borderColor,
-                                color: "white",
-                                padding: "4px 12px",
-                                borderRadius: "10px",
-                                fontWeight: "700",
-                                fontSize: "10px",
-                                textTransform: "uppercase",
-                              }}
-                            >
-                              {article.sentiment_label}
-                            </span>
-                          </div>
-
-                          {/* Save button */}
-                          <button
-                            onClick={() => toggleSave(article)}
-                            style={{
-                              background: isSaved ? "#4a9eff" : "none",
-                              border: "1px solid #444",
-                              borderRadius: "4px",
-                              padding: "4px 8px",
-                              cursor: "pointer",
-                              fontSize: "12px",
-                              color: isSaved ? "white" : "#aaa",
-                            }}
-                            title={isSaved ? "Remove from saved" : "Save for later"}
-                          >
-                            🔖
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Desktop: Image with overlay */}
-                      <div style={{ position: "relative", width: "100%", height: "500px", overflow: "hidden" }}>
-                        <img
-                          src={article.image_url}
-                          alt="slide"
-                          style={{ width: "100%", height: "100%", objectFit: "contain", objectPosition: "center", background: "#000" }}
-                        />
-
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 100%)",
-                          }}
-                        />
-
-                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "30px 40px", color: "#e0e0e0" }}>
-                          {/* Sentiment + Category badges */}
-                          <div style={{ marginBottom: "12px" }}>
-                            <span
-                              style={{
-                                background: borderColor,
-                                color: "white",
-                                padding: "7px 18px",
-                                borderRadius: "20px",
-                                fontSize: "13px",
-                                fontWeight: "700",
-                                textTransform: "uppercase",
-                                marginRight: "12px",
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                              }}
-                            >
-                              {article.sentiment_label}
-                            </span>
-                            <span
-                              style={{
-                                background: "#e3f2fd",
-                                color: "#1976d2",
-                                padding: "7px 18px",
-                                borderRadius: "20px",
-                                fontSize: "13px",
-                                fontWeight: "700",
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                              }}
-                            >
-                              {article.category}
-                            </span>
-                          </div>
-
-                          <a
-                            href={article.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              color: "#ffffff",
-                              textDecoration: "none",
-                              fontSize: "24px",
-                              fontWeight: "700",
-                              display: "block",
-                              marginBottom: "12px",
-                              lineHeight: "1.2",
-                              textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
-                            }}
-                          >
-                            {article.title}
-                          </a>
-
-                          <p
-                            style={{
-                              margin: "0 0 12px",
-                              fontSize: "15px",
-                              lineHeight: "1.6",
-                              opacity: 0.95,
-                              textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-                            }}
-                          >
-                            {article.summary.substring(0, 150)}...
-                          </p>
-
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "14px", fontWeight: "600", opacity: 0.85, textShadow: "1px 1px 2px rgba(0,0,0,0.5)" }}>
-                              {getSourceName(article.source_url)}
-                            </span>
-
-                            <button
-                              onClick={() => toggleSave(article)}
-                              style={{
-                                background: isSaved ? "rgba(74,158,255,0.8)" : "rgba(0,0,0,0.5)",
-                                border: "1px solid #555",
-                                borderRadius: "4px",
-                                padding: "6px 10px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                color: "#ccc",
-                              }}
-                              title={isSaved ? "Remove from saved" : "Save for later"}
-                            >
-                              🔖
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                  article={article}
+                  index={index}
+                  isActive={isActive}
+                  isSaved={isSaved}
+                  borderColor={borderColor}
+                />
               );
             })}
 
-            {/* Desktop navigation buttons */}
+            {/* Desktop Navigation Arrows */}
             {!isMobile && (
               <>
                 <button
                   onClick={prevSlide}
                   style={{
                     position: "absolute",
-                    left: "20px",
+                    left: "15px",
                     top: "50%",
                     transform: "translateY(-50%)",
-                    background: "rgba(0,0,0,0.7)",
+                    background: "rgba(0,0,0,0.6)",
                     color: "white",
                     border: "none",
                     borderRadius: "50%",
-                    width: "60px",
-                    height: "60px",
-                    fontSize: "30px",
+                    width: "50px",
+                    height: "50px",
+                    fontSize: "24px",
                     cursor: "pointer",
                     zIndex: 10,
                     display: "flex",
@@ -967,21 +1304,20 @@ export default function Home() {
                 >
                   ‹
                 </button>
-
                 <button
                   onClick={nextSlide}
                   style={{
                     position: "absolute",
-                    right: "20px",
+                    right: "15px",
                     top: "50%",
                     transform: "translateY(-50%)",
-                    background: "rgba(0,0,0,0.7)",
+                    background: "rgba(0,0,0,0.6)",
                     color: "white",
                     border: "none",
                     borderRadius: "50%",
-                    width: "60px",
-                    height: "60px",
-                    fontSize: "30px",
+                    width: "50px",
+                    height: "50px",
+                    fontSize: "24px",
                     cursor: "pointer",
                     zIndex: 10,
                     display: "flex",
@@ -992,6 +1328,7 @@ export default function Home() {
                   ›
                 </button>
 
+                {/* Dots Indicator - Desktop */}
                 <div
                   style={{
                     position: "absolute",
@@ -1033,123 +1370,9 @@ export default function Home() {
               More Articles
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {listArticles.map((item) => {
-                const borderColor = getBorderColor(item.sentiment_label);
-                const isSaved = isArticleSaved(item.id);
-
-                return (
-                  <div
-                    key={item.id}
-                    style={{
-                      borderLeft: `4px solid ${borderColor}`,
-                      padding: "16px",
-                      background: isMobile ? "#1a1a1a" : "white",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    <a
-                      href={item.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: isMobile ? "#4da3ff" : "#1a0dab",
-                        textDecoration: "none",
-                        fontSize: "18px",
-                        fontWeight: "600",
-                        display: "block",
-                        marginBottom: "10px",
-                        lineHeight: "1.4",
-                      }}
-                    >
-                      {item.title}
-                    </a>
-
-                    <p
-                      style={{
-                        margin: "0 0 12px",
-                        color: isMobile ? "#aaaaaa" : "#555",
-                        fontSize: "14px",
-                        lineHeight: "1.6",
-                      }}
-                    >
-                      {item.summary}
-                    </p>
-
-                    <div style={{ marginBottom: "10px" }}>
-                      <a
-                        href={item.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          color: isMobile ? "#4da3ff" : "#0066cc",
-                          textDecoration: "none",
-                          fontSize: "13px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        {getSourceName(item.source_url)}
-                      </a>
-                      {item.category && (
-                        <span
-                          style={{
-                            marginLeft: "10px",
-                            fontSize: "11px",
-                            color: isMobile ? "#cccccc" : "#666",
-                            background: isMobile ? "#2a2a2a" : "#f0f0f0",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                          }}
-                        >
-                          {item.category}
-                        </span>
-                      )}
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ color: isMobile ? "#aaaaaa" : "#666" }}>
-                          {item.published_at
-                            ? new Date(item.published_at).toLocaleString("en-US", {
-                                month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
-                              })
-                            : ""}
-                        </span>
-
-                        <span
-                          style={{
-                            background: borderColor,
-                            color: "white",
-                            padding: "4px 12px",
-                            borderRadius: "12px",
-                            fontWeight: "600",
-                            fontSize: "11px",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          {item.sentiment_label}
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={() => toggleSave(item)}
-                        style={{
-                          background: isSaved ? (isMobile ? "#4a9eff" : "#0066cc") : "none",
-                          border: isMobile ? "1px solid #444" : "1px solid #ddd",
-                          borderRadius: "4px",
-                          padding: "4px 8px",
-                          cursor: "pointer",
-                          fontSize: "12px",
-                          color: isSaved ? "white" : (isMobile ? "#aaa" : "#666"),
-                        }}
-                        title={isSaved ? "Remove from saved" : "Save for later"}
-                      >
-                        🔖
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {listArticles.map((item) => (
+                <TrackableListArticle key={item.id} item={item} />
+              ))}
             </div>
           </>
         )}
