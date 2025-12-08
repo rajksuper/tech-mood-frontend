@@ -98,8 +98,7 @@ export default function Home() {
   // Category dropdown
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
-  // Fresh content state (NEW)
-  const [showFreshOnly, setShowFreshOnly] = useState(true);
+  // Fresh content tracking (NEW)
   const [seenCount, setSeenCount] = useState(0);
 
   // Handle search submit
@@ -154,13 +153,7 @@ export default function Home() {
   const handleResetSeen = () => {
     clearAllSeen();
     setSeenCount(0);
-    setShowFreshOnly(true);
     loadArticles();
-  };
-
-  // Toggle fresh/all (NEW)
-  const toggleFreshMode = () => {
-    setShowFreshOnly(!showFreshOnly);
   };
 
   // Mark component as mounted and inject mobile styles
@@ -229,7 +222,7 @@ export default function Home() {
   useEffect(() => {
     loadArticles();
     calculateTotalPages();
-  }, [selectedCategory, currentPage, showFreshOnly]);
+  }, [selectedCategory, currentPage]);
 
   // Prefetch next page after current page loads
   useEffect(() => {
@@ -332,7 +325,7 @@ export default function Home() {
       .catch(() => setLoading(false));
   };
 
-  // Process and display articles (UPDATED with fresh filter)
+  // Process and display articles
   const processArticles = (allArticles) => {
     // Check device type directly (state might not be set yet on initial load)
     let articlesPerPage = 24; // Default desktop
@@ -359,12 +352,9 @@ export default function Home() {
       new Date(b.published_at) - new Date(a.published_at)
     );
 
-    // Apply fresh filter if enabled (NEW)
-    const articlesToShow = showFreshOnly ? filterFreshArticles(sorted) : sorted;
-
     // Separate: articles with images vs without
-    const withImages = articlesToShow.filter((a) => a.image_url);
-    const withoutImages = articlesToShow.filter((a) => !a.image_url);
+    const withImages = sorted.filter((a) => a.image_url);
+    const withoutImages = sorted.filter((a) => !a.image_url);
 
     // Take half of each (newest), then shuffle for display variety
     const topImages = withImages.slice(0, halfCount).sort(() => Math.random() - 0.5);
@@ -1070,58 +1060,27 @@ export default function Home() {
               </div>
             )}
           </div>
-          </div>
-        </div>
 
-        {/* FRESH CONTENT TOGGLE BAR (NEW) */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "12px",
-            marginBottom: "12px",
-            padding: "10px 14px",
-            background: isMobile ? "#1a1a1a" : "#f5f5f5",
-            borderRadius: "8px",
-            border: isMobile ? "1px solid #333" : "1px solid #e0e0e0",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "13px", color: isMobile ? "#aaa" : "#666" }}>
-              👁 {seenCount} seen
-            </span>
+            {/* RESET SEEN BUTTON (NEW) */}
             <button
-              onClick={toggleFreshMode}
+              onClick={handleResetSeen}
+              title="Reset viewed articles - Clears your reading history so you can see all articles as fresh again"
               style={{
-                padding: "6px 12px",
-                fontSize: "12px",
-                background: showFreshOnly ? (isMobile ? "#2d5a2d" : "#e8f5e9") : (isMobile ? "#2a2a2a" : "#fff"),
-                color: showFreshOnly ? (isMobile ? "#90EE90" : "#2e7d32") : (isMobile ? "#aaa" : "#666"),
-                border: showFreshOnly ? "1px solid #4caf50" : (isMobile ? "1px solid #444" : "1px solid #ddd"),
-                borderRadius: "6px",
+                background: isMobile ? "#2a2a2a" : "#f0f0f0",
+                border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                borderRadius: "8px",
+                padding: "8px 12px",
                 cursor: "pointer",
-                fontWeight: "600",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "14px",
+                color: isMobile ? "#e0e0e0" : "#333",
               }}
             >
-              {showFreshOnly ? "✓ Fresh Only" : "Show All"}
+              🔄
             </button>
           </div>
-          <button
-            onClick={handleResetSeen}
-            style={{
-              padding: "6px 12px",
-              fontSize: "12px",
-              background: isMobile ? "#2a2a2a" : "#fff",
-              color: isMobile ? "#aaa" : "#666",
-              border: isMobile ? "1px solid #444" : "1px solid #ddd",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            🔄 Reset Seen
-          </button>
         </div>
 
         {/* SEARCH BAR - Google/MSN style with icon inside */}
@@ -1167,70 +1126,6 @@ export default function Home() {
         <p style={{ textAlign: "center", padding: "40px", color: isMobile ? "#e0e0e0" : "#000" }}>
           Loading...
         </p>
-      )}
-
-      {/* NO FRESH ARTICLES MESSAGE (NEW) */}
-      {!loading && showFreshOnly && featuredArticles.length === 0 && listArticles.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "60px 20px",
-            background: isMobile ? "#1a1a1a" : "#f9f9f9",
-            margin: "20px",
-            borderRadius: "12px",
-          }}
-        >
-          <h2 style={{ fontSize: "24px", marginBottom: "12px" }}>🎉 You're all caught up!</h2>
-          <p style={{ color: isMobile ? "#aaa" : "#666", marginBottom: "20px" }}>
-            You've seen all articles on this page. Try the next page or reset to see everything again.
-          </p>
-          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-            <button
-              onClick={() => setShowFreshOnly(false)}
-              style={{
-                padding: "12px 24px",
-                fontSize: "14px",
-                background: isMobile ? "#2a2a2a" : "#fff",
-                color: isMobile ? "#e0e0e0" : "#333",
-                border: isMobile ? "1px solid #444" : "1px solid #ddd",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            >
-              Show All Articles
-            </button>
-            <button
-              onClick={handleResetSeen}
-              style={{
-                padding: "12px 24px",
-                fontSize: "14px",
-                background: "#0066cc",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            >
-              🔄 Reset & Start Fresh
-            </button>
-            {currentPage < totalPages && (
-              <button
-                onClick={nextPageBottom}
-                style={{
-                  padding: "12px 24px",
-                  fontSize: "14px",
-                  background: "#0066cc",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                }}
-              >
-                Next Page →
-              </button>
-            )}
-          </div>
-        </div>
       )}
 
       {/* CAROUSEL */}
