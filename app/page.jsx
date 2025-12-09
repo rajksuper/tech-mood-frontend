@@ -413,13 +413,13 @@ export default function Home() {
       display: "block"
     }}
   />
-  <h1 style={{ 
+  <h3 style={{ 
     fontSize: isMobile ? "22px" : "32px", 
     margin: 0, 
     padding: 0,
   }}>
     tech SentimentS
-  </h1>
+  </h3>
 </div>
 
           {/*  <h3
