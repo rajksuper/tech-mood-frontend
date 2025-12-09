@@ -3,8 +3,8 @@ export const metadata = {
   title: "The Tech Mood Dashboard",
   description: "AI-powered tech sentiment dashboard",
    icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-32x32.png",
+    icon: "/favicon-32x32.png",   // ← 32×32 becomes the DEFAULT
+    shortcut: "/favicon-32x32.png",     // ← ICO still works as fallback
     apple: "/favicon-32x32.png",
   }
 };

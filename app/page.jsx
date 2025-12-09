@@ -286,8 +286,23 @@ export default function Home() {
     const topImages = withImages.slice(0, halfCount).sort(() => Math.random() - 0.5);
     const topText = withoutImages.slice(0, halfCount).sort(() => Math.random() - 0.5);
 
-    setFeaturedArticles(topImages);
-    setListArticles(topText);
+    // For mobile: combine all articles into one carousel (alternating image/text)
+    const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
+    
+    if (isMobileDevice) {
+      // Alternate: image, text, image, text...
+      const combined = [];
+      const maxLen = Math.max(topImages.length, topText.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (topImages[i]) combined.push(topImages[i]);
+        if (topText[i]) combined.push(topText[i]);
+      }
+      setFeaturedArticles(combined);
+      setListArticles([]); // No list on mobile - all in carousel
+    } else {
+      setFeaturedArticles(topImages);
+      setListArticles(topText);
+    }
     setLoading(false);
   };
 
@@ -725,124 +740,173 @@ export default function Home() {
                 >
                   {isMobile ? (
                     <>
-                      {/* Mobile: Image with dots */}
-                      <div style={{ position: "relative", width: "100%", height: "220px", overflow: "hidden" }}>
-                        <img
-                          src={article.image_url}
-                          alt="slide"
-                          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }}
-                        />
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: "15px",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            display: "flex",
-                            gap: "8px",
-                            zIndex: 10,
-                          }}
-                        >
-                          {featuredArticles.map((_, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => setCurrentSlide(idx)}
-                              style={{
-                                width: "8px",
-                                height: "8px",
-                                borderRadius: "50%",
-                                border: "none",
-                                background: idx === currentSlide ? "white" : "rgba(255,255,255,0.5)",
-                                cursor: "pointer",
-                                padding: 0,
-                              }}
+                      {/* Mobile: Full-screen carousel for ALL articles */}
+                      {article.image_url ? (
+                        <>
+                          {/* Article WITH image */}
+                          <div style={{ position: "relative", width: "100%", height: "220px", overflow: "hidden" }}>
+                            <img
+                              src={article.image_url}
+                              alt="slide"
+                              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }}
                             />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Mobile: Text section */}
-                      <div style={{ background: "#1a1a1a", padding: "15px", color: "white", minHeight: "150px" }}>
-                        <a
-                          href={article.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            color: "white",
-                            textDecoration: "none",
-                            fontSize: "16px",
-                            fontWeight: "700",
-                            display: "block",
-                            marginBottom: "8px",
-                            lineHeight: "1.3",
-                          }}
-                        >
-                          {article.title}
-                        </a>
-
-                        <p style={{ color: "#aaa", fontSize: "12px", lineHeight: "1.4", marginBottom: "10px" }}>
-                          {article.summary.substring(0, 80)}...
-                        </p>
-
-                        <div style={{ marginBottom: "10px" }}>
-                          <span style={{ color: "#4a9eff", fontSize: "12px", fontWeight: "600", marginRight: "10px" }}>
-                            {getSourceName(article.source_url)}
-                          </span>
-                          <span
-                            style={{
-                              background: "#2d2d2d",
-                              color: "#4a9eff",
-                              padding: "3px 8px",
-                              borderRadius: "4px",
-                              fontSize: "10px",
-                              fontWeight: "600",
-                            }}
-                          >
-                            {article.category}
-                          </span>
-                        </div>
-
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <span style={{ color: "#888" }}>
-                              {article.published_at
-                                ? new Date(article.published_at).toLocaleString("en-US", {
-                                    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                                  })
-                                : ""}
-                            </span>
-                            <span
+                          </div>
+                          <div style={{ background: "#1a1a1a", padding: "15px", color: "white", minHeight: "150px" }}>
+                            <a
+                              href={article.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               style={{
-                                background: borderColor,
                                 color: "white",
-                                padding: "4px 12px",
-                                borderRadius: "10px",
+                                textDecoration: "none",
+                                fontSize: "16px",
                                 fontWeight: "700",
-                                fontSize: "10px",
-                                textTransform: "uppercase",
+                                display: "block",
+                                marginBottom: "8px",
+                                lineHeight: "1.3",
                               }}
                             >
-                              {article.sentiment_label}
-                            </span>
+                              {article.title}
+                            </a>
+                            <p style={{ color: "#aaa", fontSize: "12px", lineHeight: "1.4", marginBottom: "10px" }}>
+                              {article.summary?.substring(0, 80)}...
+                            </p>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <span
+                                  style={{
+                                    background: borderColor,
+                                    color: "white",
+                                    padding: "3px 8px",
+                                    borderRadius: "4px",
+                                    fontWeight: "600",
+                                    fontSize: "10px",
+                                    textTransform: "uppercase",
+                                  }}
+                                >
+                                  {article.sentiment_label}
+                                </span>
+                                <span style={{ color: "#888" }}>{article.category}</span>
+                              </div>
+                              <button
+                                onClick={() => toggleSave(article)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  fontSize: "18px",
+                                  cursor: "pointer",
+                                  opacity: isSaved ? 1 : 0.5,
+                                }}
+                              >
+                                🔖
+                              </button>
+                            </div>
                           </div>
-
-                          {/* Save button */}
+                        </>
+                      ) : (
+                        <>
+                          {/* Article WITHOUT image - text card style */}
+                          <div style={{ 
+                            background: "#1a1a1a", 
+                            padding: "20px", 
+                            color: "white", 
+                            minHeight: "370px",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "center",
+                            borderLeft: `4px solid ${borderColor}`,
+                          }}>
+                            <div style={{
+                              fontSize: "40px",
+                              fontWeight: "700",
+                              color: borderColor,
+                              marginBottom: "15px",
+                              opacity: 0.3,
+                            }}>
+                              {getSourceName(article.source_url).charAt(0).toUpperCase()}
+                            </div>
+                            <a
+                              href={article.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "white",
+                                textDecoration: "none",
+                                fontSize: "18px",
+                                fontWeight: "700",
+                                display: "block",
+                                marginBottom: "12px",
+                                lineHeight: "1.4",
+                              }}
+                            >
+                              {article.title}
+                            </a>
+                            <p style={{ color: "#aaa", fontSize: "14px", lineHeight: "1.5", marginBottom: "15px" }}>
+                              {article.summary?.substring(0, 120)}...
+                            </p>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", marginTop: "auto" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <span
+                                  style={{
+                                    background: borderColor,
+                                    color: "white",
+                                    padding: "3px 8px",
+                                    borderRadius: "4px",
+                                    fontWeight: "600",
+                                    fontSize: "10px",
+                                    textTransform: "uppercase",
+                                  }}
+                                >
+                                  {article.sentiment_label}
+                                </span>
+                                <span style={{ color: "#888" }}>{getSourceName(article.source_url)}</span>
+                                <span style={{ color: "#666" }}>{article.category}</span>
+                              </div>
+                              <button
+                                onClick={() => toggleSave(article)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  fontSize: "18px",
+                                  cursor: "pointer",
+                                  opacity: isSaved ? 1 : 0.5,
+                                }}
+                              >
+                                🔖
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* Dots indicator - show for all slides */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: article.image_url ? "160px" : "15px",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          display: "flex",
+                          gap: "6px",
+                          zIndex: 10,
+                        }}
+                      >
+                        {featuredArticles.slice(0, 12).map((_, idx) => (
                           <button
-                            onClick={() => toggleSave(article)}
+                            key={idx}
+                            onClick={() => setCurrentSlide(idx)}
                             style={{
-                              background: isSaved ? "#4a9eff" : "none",
-                              border: "1px solid #444",
-                              borderRadius: "4px",
-                              padding: "4px 8px",
+                              width: idx === currentSlide ? "20px" : "6px",
+                              height: "6px",
+                              borderRadius: idx === currentSlide ? "3px" : "50%",
+                              border: "none",
+                              background: idx === currentSlide ? "white" : "rgba(255,255,255,0.4)",
                               cursor: "pointer",
-                              fontSize: "12px",
-                              color: isSaved ? "white" : "#aaa",
+                              padding: 0,
+                              transition: "all 0.3s ease",
                             }}
-                            title={isSaved ? "Remove from saved" : "Save for later"}
-                          >
-                            🔖
-                          </button>
-                        </div>
+                          />
+                        ))}
                       </div>
                     </>
                   ) : (
