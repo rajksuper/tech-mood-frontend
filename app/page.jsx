@@ -402,9 +402,26 @@ export default function Home() {
       <div style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <h1 style={{ fontSize: isMobile ? "22px" : "32px", marginBottom: "8px" }}>
-              tech SentimentS 
-            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+  <img 
+    src="/ts-logo.png" 
+    alt="TechSentiments Logo" 
+    style={{
+      width: isMobile ? "28px" : "40px",
+      height: "auto",
+      objectFit: "contain",
+      display: "block"
+    }}
+  />
+  <h1 style={{ 
+    fontSize: isMobile ? "22px" : "32px", 
+    margin: 0, 
+    padding: 0,
+  }}>
+    tech SentimentS
+  </h1>
+</div>
+
           {/*  <h3
               style={{
                 color: isMobile ? "#bbbbbb" : "#666",
