@@ -403,7 +403,7 @@ export default function Home() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: isMobile ? "22px" : "32px", marginBottom: "8px" }}>
-              tech SENTIMENTS 
+              tech SentimentS 
             </h1>
           {/*  <h3
               style={{
