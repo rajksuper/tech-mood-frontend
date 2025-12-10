@@ -289,6 +289,7 @@ export default function Home() {
         minHeight: "100vh",
         background: isMobile ? "#0d0d0d" : "#f8f9fa",
         color: isMobile ? "#e0e0e0" : "#333",
+        overflowX: "hidden",
       }}
     >
       {/* HEADER */}
@@ -300,6 +301,7 @@ export default function Home() {
           position: "sticky",
           top: 0,
           zIndex: 100,
+          overflowX: "hidden",
         }}
       >
         <div
@@ -311,6 +313,8 @@ export default function Home() {
             alignItems: isMobile ? "stretch" : "center",
             justifyContent: "space-between",
             gap: isMobile ? "10px" : "15px",
+            width: "100%",
+            boxSizing: "border-box",
           }}
         >
           {/* Row 1 on Mobile: Logo + Category + Saved */}
@@ -518,11 +522,12 @@ export default function Home() {
             style={{
               flex: 1,
               maxWidth: isMobile ? "100%" : "550px",
+              minWidth: 0,
               display: "flex",
               alignItems: "center",
             }}
           >
-            <div style={{ position: "relative", width: "100%" }}>
+            <div style={{ position: "relative", width: "100%", minWidth: 0 }}>
               <input
                 type="text"
                 value={searchQuery}
@@ -540,6 +545,7 @@ export default function Home() {
                   background: isMobile ? "#1a1a1a" : "#fff",
                   color: isMobile ? "#e0e0e0" : "#333",
                   outline: "none",
+                  boxSizing: "border-box",
                 }}
               />
               <button

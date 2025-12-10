@@ -21,9 +21,9 @@ function SearchContent() {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [correctedQuery, setCorrectedQuery] = useState(null);
@@ -95,7 +95,7 @@ function SearchContent() {
   // Search when query changes
   useEffect(() => {
     if (query) {
-      performSearch(query, 0);
+      performSearch(query, 1);
     }
   }, [query]);
 
@@ -105,27 +105,49 @@ function SearchContent() {
     setLoading(true);
     try {
       const res = await fetch(
-        `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=50`
+        `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(searchQuery)}&page=${page - 1}&limit=50`
       );
       const json = await res.json();
       
-      setArticles(json.articles || []);
-      setTotalCount(json.count || 0);
-      setHasMore(json.has_more || false);
+      const allArticles = json.articles || [];
+      const total = json.count || 0;
+      
+      // Check device type directly
+      const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
+      const articlesPerPage = isMobileDevice ? 12 : 24;
+      
+      // Calculate total pages
+      const pages = Math.ceil(total / articlesPerPage);
+      setTotalPages(pages);
+      setTotalCount(total);
+      
+      // Process articles - alternate image/text
+      const withImages = allArticles.filter(a => a.image_url);
+      const withoutImages = allArticles.filter(a => !a.image_url);
+      
+      const combined = [];
+      const maxLen = Math.max(withImages.length, withoutImages.length);
+      
+      for (let i = 0; i < maxLen && combined.length < articlesPerPage; i++) {
+        if (withImages[i]) combined.push(withImages[i]);
+        if (withoutImages[i] && combined.length < articlesPerPage) combined.push(withoutImages[i]);
+      }
+      
+      setArticles(combined.slice(0, articlesPerPage));
       setCurrentPage(page);
       setCorrectedQuery(json.corrected_query || null);
       
       if (json.corrected_query) {
         setActiveSearchTerm(json.corrected_query);
-      } else if (page === 0) {
+      } else if (page === 1) {
         setActiveSearchTerm(searchQuery.toLowerCase());
       }
       
       // Prefetch next page
-      if (json.has_more) {
+      if (page < pages) {
         const prefetchTerm = json.corrected_query || searchQuery;
         fetch(
-          `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(prefetchTerm)}&page=${page + 1}&limit=50`
+          `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(prefetchTerm)}&page=${page}&limit=50`
         ).catch(() => {});
       }
     } catch (err) {
@@ -140,29 +162,36 @@ function SearchContent() {
     e.preventDefault();
     if (searchInput.trim()) {
       window.history.pushState({}, "", `/search?q=${encodeURIComponent(searchInput)}`);
-      performSearch(searchInput, 0);
+      performSearch(searchInput, 1);
     }
   };
 
-  const nextPage = () => {
-    const searchTerm = activeSearchTerm || correctedQuery || query || searchInput;
+  const goToPage = (pageNum) => {
     window.scrollTo({ top: 0, behavior: "instant" });
-    performSearch(searchTerm, currentPage + 1);
+    const searchTerm = activeSearchTerm || correctedQuery || query || searchInput;
+    performSearch(searchTerm, pageNum);
+  };
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
   };
 
   const prevPage = () => {
-    if (currentPage > 0) {
-      const searchTerm = activeSearchTerm || correctedQuery || query || searchInput;
-      window.scrollTo({ top: 0, behavior: "instant" });
-      performSearch(searchTerm, currentPage - 1);
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
     }
   };
 
   const getBorderColor = (sentiment) => {
-    if (sentiment === "positive") return "green";
-    if (sentiment === "negative") return "red";
-    if (sentiment === "mixed") return "#a855f7";
-    return "#e6b800";
+    switch (sentiment?.toLowerCase()) {
+      case "positive": return "#22c55e";
+      case "negative": return "#ef4444";
+      case "neutral": return "#eab308";
+      case "mixed": return "#a855f7";
+      default: return "#666";
+    }
   };
 
   if (!hasMounted) return null;
@@ -186,6 +215,7 @@ function SearchContent() {
           position: "sticky",
           top: 0,
           zIndex: 100,
+          overflowX: "hidden",
         }}
       >
         <div
@@ -197,6 +227,8 @@ function SearchContent() {
             alignItems: isMobile ? "stretch" : "center",
             justifyContent: "space-between",
             gap: isMobile ? "10px" : "15px",
+            width: "100%",
+            boxSizing: "border-box",
           }}
         >
           {/* Row 1 on Mobile: Logo + Saved */}
@@ -331,11 +363,12 @@ function SearchContent() {
             style={{
               flex: 1,
               maxWidth: isMobile ? "100%" : "550px",
+              minWidth: 0,
               display: "flex",
               alignItems: "center",
             }}
           >
-            <div style={{ position: "relative", width: "100%" }}>
+            <div style={{ position: "relative", width: "100%", minWidth: 0 }}>
               <input
                 type="text"
                 value={searchInput}
@@ -353,6 +386,7 @@ function SearchContent() {
                   background: isMobile ? "#1a1a1a" : "#fff",
                   color: isMobile ? "#e0e0e0" : "#333",
                   outline: "none",
+                  boxSizing: "border-box",
                 }}
               />
               <button
@@ -478,7 +512,7 @@ function SearchContent() {
       )}
 
       {/* MAIN CONTENT */}
-      <div style={{ padding: isMobile ? "15px" : "20px", maxWidth: "1000px", margin: "0 auto" }}>
+      <main style={{ padding: isMobile ? "15px" : "20px", maxWidth: "1400px", margin: "0 auto" }}>
         
         {/* Results Info */}
         {query && !loading && (
@@ -492,7 +526,7 @@ function SearchContent() {
                 🤖 Showing results for "<strong>{correctedQuery}</strong>"
               </p>
             )}
-            <p style={{ color: isMobile ? "#aaa" : "#666" }}>
+            <p style={{ color: isMobile ? "#aaa" : "#666", fontSize: "14px" }}>
               {totalCount > 0
                 ? `Found ${totalCount} results for "${correctedQuery || query}"`
                 : `No results found for "${correctedQuery || query}"`}
@@ -502,16 +536,146 @@ function SearchContent() {
 
         {/* Loading */}
         {loading && (
-          <p style={{ textAlign: "center", padding: "40px", color: isMobile ? "#aaa" : "#666" }}>
+          <div style={{ textAlign: "center", padding: "60px 20px", color: "#888" }}>
             Searching...
-          </p>
+          </div>
         )}
 
-        {/* Results - Original List Layout */}
-        {!loading && articles.length > 0 && (
+        {/* MOBILE: Grid Layout (matches homepage) */}
+        {!loading && articles.length > 0 && isMobile && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr",
+              gap: "15px",
+            }}
+          >
+            {articles.map((article) => {
+              const borderColor = getBorderColor(article.sentiment_label);
+              const isSaved = isArticleSaved(article.id);
+              const hasImage = !!article.image_url;
+
+              return (
+                <div
+                  key={article.id}
+                  style={{
+                    background: "#1a1a1a",
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                    border: "1px solid #2a2a2a",
+                    borderLeft: `4px solid ${borderColor}`,
+                  }}
+                >
+                  {/* Image */}
+                  {hasImage && (
+                    <a href={article.source_url} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={article.image_url}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "180px",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </a>
+                  )}
+
+                  {/* Content */}
+                  <div style={{ padding: "12px" }}>
+                    {/* Title */}
+                    <a
+                      href={article.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: "#fff",
+                        textDecoration: "none",
+                        fontSize: "15px",
+                        fontWeight: "600",
+                        lineHeight: "1.4",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      {article.title}
+                    </a>
+
+                    {/* Summary - only for text articles */}
+                    {!hasImage && (
+                      <p
+                        style={{
+                          color: "#aaa",
+                          fontSize: "13px",
+                          lineHeight: "1.4",
+                          margin: "0 0 10px 0",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {article.summary}
+                      </p>
+                    )}
+
+                    {/* Meta row */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginTop: "auto",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span
+                          style={{
+                            background: borderColor,
+                            color: "#fff",
+                            padding: "3px 8px",
+                            borderRadius: "4px",
+                            fontSize: "10px",
+                            fontWeight: "600",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {article.sentiment_label}
+                        </span>
+                        <span style={{ fontSize: "11px", color: "#888" }}>
+                          {getSourceName(article.source_url)}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => toggleSave(article)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "16px",
+                          opacity: isSaved ? 1 : 0.4,
+                        }}
+                      >
+                        🔖
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* DESKTOP: List Layout (original search style) */}
+        {!loading && articles.length > 0 && !isMobile && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {articles.map((item) => {
               const borderColor = getBorderColor(item.sentiment_label);
+              const isSaved = isArticleSaved(item.id);
 
               return (
                 <div
@@ -520,12 +684,11 @@ function SearchContent() {
                     borderLeft: `6px solid ${borderColor}`,
                     borderRadius: "8px",
                     padding: "16px 20px",
-                    background: isMobile ? "#1a1a1a" : "white",
+                    background: "white",
                     display: "flex",
                     gap: "20px",
-                    alignItems: isMobile ? "flex-start" : "center",
-                    flexDirection: isMobile ? "column" : "row",
-                    boxShadow: isMobile ? "none" : "0 2px 6px rgba(0,0,0,0.08)",
+                    alignItems: "center",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
                   }}
                 >
                   {/* Image or Placeholder */}
@@ -534,8 +697,8 @@ function SearchContent() {
                       src={item.image_url}
                       alt="thumbnail"
                       style={{
-                        width: isMobile ? "100%" : "140px",
-                        height: isMobile ? "180px" : "90px",
+                        width: "140px",
+                        height: "90px",
                         objectFit: "cover",
                         borderRadius: "6px",
                         flexShrink: 0,
@@ -544,12 +707,10 @@ function SearchContent() {
                   ) : (
                     <div
                       style={{
-                        width: isMobile ? "100%" : "140px",
-                        height: isMobile ? "80px" : "90px",
+                        width: "140px",
+                        height: "90px",
                         borderRadius: "6px",
-                        background: isMobile
-                          ? `linear-gradient(135deg, ${borderColor}30, ${borderColor}50)`
-                          : `linear-gradient(135deg, ${borderColor}20, ${borderColor}40)`,
+                        background: `linear-gradient(135deg, ${borderColor}20, ${borderColor}40)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -570,7 +731,7 @@ function SearchContent() {
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
-                        color: isMobile ? "#4da3ff" : "#1a0dab",
+                        color: "#1a0dab",
                         textDecoration: "none",
                         fontSize: "18px",
                         fontWeight: "600",
@@ -584,7 +745,7 @@ function SearchContent() {
 
                     <p
                       style={{
-                        color: isMobile ? "#bbb" : "#555",
+                        color: "#555",
                         fontSize: "14px",
                         marginBottom: "10px",
                         lineHeight: "1.5",
@@ -603,11 +764,11 @@ function SearchContent() {
                         alignItems: "center",
                         gap: "12px",
                         fontSize: "13px",
-                        color: isMobile ? "#888" : "#888",
+                        color: "#888",
                         flexWrap: "wrap",
                       }}
                     >
-                      <span style={{ color: isMobile ? "#4da3ff" : "#0066cc" }}>
+                      <span style={{ color: "#0066cc" }}>
                         {getSourceName(item.source_url)}
                       </span>
                       <span>•</span>
@@ -637,7 +798,7 @@ function SearchContent() {
                           <span>•</span>
                           <span
                             style={{
-                              background: isMobile ? "#333" : "#f0f0f0",
+                              background: "#f0f0f0",
                               padding: "2px 10px",
                               borderRadius: "12px",
                               fontSize: "11px",
@@ -647,6 +808,19 @@ function SearchContent() {
                           </span>
                         </>
                       )}
+                      <button
+                        onClick={() => toggleSave(item)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "16px",
+                          opacity: isSaved ? 1 : 0.4,
+                          marginLeft: "auto",
+                        }}
+                      >
+                        🔖
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -655,52 +829,81 @@ function SearchContent() {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Pagination - Google Style (same as homepage) */}
         {!loading && articles.length > 0 && (
           <div
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: "20px",
-              marginTop: "40px",
-              marginBottom: "40px",
+              alignItems: "center",
+              gap: isMobile ? "8px" : "12px",
+              margin: "40px 0",
+              fontSize: "14px",
+              color: isMobile ? "#aaa" : "#666",
             }}
           >
-            {currentPage > 0 && (
-              <button
-                onClick={prevPage}
-                style={{
-                  padding: "10px 24px",
-                  background: isMobile ? "#333" : "#f0f0f0",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  color: isMobile ? "#e0e0e0" : "#333",
-                }}
+            {currentPage > 1 && (
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); prevPage(); }}
+                style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none" }}
               >
-                ← Previous
-              </button>
+                Previous
+              </a>
             )}
-            {hasMore && (
-              <button
-                onClick={nextPage}
-                style={{
-                  padding: "10px 24px",
-                  background: isMobile ? "#4da3ff" : "#0066cc",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                }}
+
+            {(() => {
+              const pages = [];
+              const maxVisible = isMobile ? 6 : 10;
+              
+              // Calculate start and end pages (sliding window)
+              let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+              let endPage = startPage + maxVisible - 1;
+              
+              // Adjust if we're near the end
+              if (endPage > totalPages) {
+                endPage = totalPages;
+                startPage = Math.max(1, endPage - maxVisible + 1);
+              }
+              
+              // Render page numbers
+              for (let i = startPage; i <= endPage; i++) {
+                pages.push(
+                  <a
+                    key={i}
+                    href="#"
+                    onClick={(e) => { e.preventDefault(); goToPage(i); }}
+                    style={{
+                      color: i === currentPage ? (isMobile ? "#fff" : "#333") : (isMobile ? "#4da3ff" : "#1a0dab"),
+                      fontWeight: i === currentPage ? "700" : "normal",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {i}
+                  </a>
+                );
+              }
+              
+              // Add "..." if there are more pages after
+              if (endPage < totalPages) {
+                pages.push(<span key="dots">...</span>);
+              }
+
+              return pages;
+            })()}
+
+            {currentPage < totalPages && (
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); nextPage(); }}
+                style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none" }}
               >
-                Next →
-              </button>
+                Next
+              </a>
             )}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
