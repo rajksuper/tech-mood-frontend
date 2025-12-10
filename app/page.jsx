@@ -141,10 +141,10 @@ export default function Home() {
       .catch(() => setTotalPages(1));
   };
 
-  // Prefetch next page
+  // Prefetch next page in background
   useEffect(() => {
     if (!loading && currentPage < totalPages) {
-      const nextPageNum = currentPage;
+      const nextPageNum = currentPage; // API is 0-indexed, so page 2 = index 1 = currentPage when on page 1
       const cacheKey = `${selectedCategory || 'all'}-${nextPageNum}`;
       
       if (!pageCache[cacheKey]) {
@@ -157,6 +157,7 @@ export default function Home() {
           .then((json) => {
             const articles = Array.isArray(json.articles) ? json.articles : [];
             setPageCache(prev => ({ ...prev, [cacheKey]: articles }));
+            console.log(`Prefetched page ${currentPage + 1}`);
           })
           .catch(() => {});
       }
@@ -251,21 +252,21 @@ export default function Home() {
   }, [currentPage, selectedCategory, hasMounted]);
 
   const goToPage = (pageNum) => {
+    window.scrollTo({ top: 0, behavior: "instant" });
     setCurrentPage(pageNum);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const nextPage = () => {
     if (currentPage < totalPages) {
+      window.scrollTo({ top: 0, behavior: "instant" });
       setCurrentPage(currentPage + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   const prevPage = () => {
     if (currentPage > 1) {
+      window.scrollTo({ top: 0, behavior: "instant" });
       setCurrentPage(currentPage - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
