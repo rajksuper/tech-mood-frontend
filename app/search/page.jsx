@@ -29,6 +29,10 @@ function SearchContent() {
   const [correctedQuery, setCorrectedQuery] = useState(null);
   const [activeSearchTerm, setActiveSearchTerm] = useState(null);
 
+  // Save functionality
+  const [savedArticles, setSavedArticles] = useState([]);
+  const [showSavedDropdown, setShowSavedDropdown] = useState(false);
+
   // Mark component as mounted and inject mobile styles
   useEffect(() => {
     setHasMounted(true);
@@ -52,6 +56,32 @@ function SearchContent() {
       if (existingStyle) existingStyle.remove();
     };
   }, []);
+
+  // Load saved articles on mount
+  useEffect(() => {
+    const storedSaved = localStorage.getItem('savedArticles');
+    if (storedSaved) setSavedArticles(JSON.parse(storedSaved));
+  }, []);
+
+  // Save functions
+  const isArticleSaved = (articleId) => savedArticles.some(a => a.id === articleId);
+  
+  const toggleSave = (article) => {
+    let newSaved;
+    if (isArticleSaved(article.id)) {
+      newSaved = savedArticles.filter(a => a.id !== article.id);
+    } else {
+      newSaved = [...savedArticles, article];
+    }
+    setSavedArticles(newSaved);
+    localStorage.setItem('savedArticles', JSON.stringify(newSaved));
+  };
+
+  const removeFromSaved = (articleId) => {
+    const newSaved = savedArticles.filter(a => a.id !== articleId);
+    setSavedArticles(newSaved);
+    localStorage.setItem('savedArticles', JSON.stringify(newSaved));
+  };
 
   // Detect mobile screen
   useEffect(() => {
@@ -79,65 +109,24 @@ function SearchContent() {
       );
       const json = await res.json();
       
-      const allArticles = json.articles || [];
-      
-      // Check device type directly (state might not be set yet on initial load)
-      let articlesPerPage = 24; // Default desktop
-      
-      if (typeof window !== 'undefined') {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const isPortrait = height > width;
-        
-        // Mobile: < 768px
-        // Tablet Portrait: 768-1024px and height > width
-        // Tablet Landscape & Desktop: > 768px and width > height, or > 1024px
-        if (width < 768 || (width <= 1024 && isPortrait)) {
-          articlesPerPage = 12; // Mobile & Tablet Portrait
-        } else {
-          articlesPerPage = 24; // Tablet Landscape & Desktop
-        }
-      }
-      
-      // Separate articles with and without images
-      const withImages = allArticles.filter(a => a.image_url);
-      const withoutImages = allArticles.filter(a => !a.image_url);
-      
-      // Alternate: image, no-image, image, no-image...
-      const alternated = [];
-      const maxLen = Math.max(withImages.length, withoutImages.length);
-      
-      for (let i = 0; i < maxLen && alternated.length < articlesPerPage; i++) {
-        if (withImages[i]) alternated.push(withImages[i]);
-        if (withoutImages[i] && alternated.length < articlesPerPage) alternated.push(withoutImages[i]);
-      }
-      
-      // If we don't have enough yet, fill with remaining
-      if (alternated.length < articlesPerPage) {
-        const remaining = allArticles.filter(a => !alternated.includes(a));
-        alternated.push(...remaining.slice(0, articlesPerPage - alternated.length));
-      }
-      
-      setArticles(alternated.slice(0, articlesPerPage));
+      setArticles(json.articles || []);
       setTotalCount(json.count || 0);
       setHasMore(json.has_more || false);
       setCurrentPage(page);
       setCorrectedQuery(json.corrected_query || null);
       
-      // Store the corrected query for pagination
       if (json.corrected_query) {
         setActiveSearchTerm(json.corrected_query);
       } else if (page === 0) {
         setActiveSearchTerm(searchQuery.toLowerCase());
       }
       
-      // Prefetch next page in background
+      // Prefetch next page
       if (json.has_more) {
-        const nextPageNum = page + 1;
         const prefetchTerm = json.corrected_query || searchQuery;
         fetch(
-          `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(prefetchTerm)}&page=${nextPageNum}&limit=50`
-        ).then(() => console.log(`Prefetched search page ${nextPageNum + 1}`)).catch(() => {});
+          `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(prefetchTerm)}&page=${page + 1}&limit=50`
+        ).catch(() => {});
       }
     } catch (err) {
       console.error("Search error:", err);
@@ -156,18 +145,16 @@ function SearchContent() {
   };
 
   const nextPage = () => {
-    // Use corrected query for pagination
     const searchTerm = activeSearchTerm || correctedQuery || query || searchInput;
+    window.scrollTo({ top: 0, behavior: "instant" });
     performSearch(searchTerm, currentPage + 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const prevPage = () => {
     if (currentPage > 0) {
-      // Use corrected query for pagination
       const searchTerm = activeSearchTerm || correctedQuery || query || searchInput;
+      window.scrollTo({ top: 0, behavior: "instant" });
       performSearch(searchTerm, currentPage - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -178,72 +165,321 @@ function SearchContent() {
     return "#e6b800";
   };
 
+  if (!hasMounted) return null;
+
   return (
     <div
       style={{
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
         minHeight: "100vh",
-        background: isMobile ? "#0d0d0d" : "white",
-        color: isMobile ? "#e0e0e0" : "inherit",
+        background: isMobile ? "#0d0d0d" : "#f8f9fa",
+        color: isMobile ? "#e0e0e0" : "#333",
         overflowX: "hidden",
       }}
     >
-      {/* Header */}
-      <div style={{ padding: isMobile ? "15px" : "20px", maxWidth: "1000px", margin: "0 auto" }}>
-        <Link
-          href="/"
+      {/* HEADER */}
+      <header
+        style={{
+          padding: isMobile ? "12px 15px" : "12px 20px",
+          background: isMobile ? "#0d0d0d" : "white",
+          borderBottom: isMobile ? "1px solid #222" : "1px solid #e0e0e0",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+        }}
+      >
+        <div
           style={{
-            color: isMobile ? "#4da3ff" : "#0066cc",
-            textDecoration: "none",
-            fontSize: "14px",
-            display: "inline-block",
-            marginBottom: "16px",
+            maxWidth: "1400px",
+            margin: "0 auto",
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : "center",
+            justifyContent: "space-between",
+            gap: isMobile ? "10px" : "15px",
           }}
         >
-          ← Back to Home
-        </Link>
-
-        <h1 style={{ fontSize: isMobile ? "24px" : "32px", marginBottom: "20px" }}>
-          Search Articles
-        </h1>
-
-        {/* Search Form */}
-        <form onSubmit={handleSearch} style={{ marginBottom: "30px" }}>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search for NVIDIA, Bitcoin, AI, etc..."
+          {/* Row 1 on Mobile: Logo + Saved */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
+            {/* Logo + Name - Click to go home */}
+            <Link
+              href="/"
               style={{
-                flex: 1,
-                padding: "14px 18px",
-                fontSize: "16px",
-                border: isMobile ? "1px solid #444" : "2px solid #ddd",
-                borderRadius: "8px",
-                background: isMobile ? "#1a1a1a" : "white",
-                color: isMobile ? "#e0e0e0" : "#333",
-                outline: "none",
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                padding: "14px 28px",
-                fontSize: "16px",
-                background: "#0066cc",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "600",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                textDecoration: "none",
               }}
             >
-              Search
-            </button>
-          </div>
-        </form>
+              <img
+                src="/ts-logo.png"
+                alt="Logo"
+                style={{
+                  width: isMobile ? "28px" : "32px",
+                  height: isMobile ? "28px" : "32px",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: isMobile ? "18px" : "20px",
+                  fontWeight: "700",
+                  color: isMobile ? "#ffffff" : "#1a1a1a",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {isMobile ? "TS" : "Tech Sentiments"}
+              </span>
+            </Link>
 
+            {/* Saved - Mobile */}
+            {isMobile && (
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setShowSavedDropdown(!showSavedDropdown)}
+                  style={{
+                    padding: "6px 10px",
+                    fontSize: "12px",
+                    background: "#1a1a1a",
+                    border: "1px solid #333",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    color: "#e0e0e0",
+                  }}
+                >
+                  🔖 {savedArticles.length}
+                </button>
+
+                {showSavedDropdown && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      right: 0,
+                      marginTop: "4px",
+                      background: "#1a1a1a",
+                      border: "1px solid #333",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      zIndex: 1000,
+                      width: "280px",
+                      maxHeight: "400px",
+                      overflow: "auto",
+                    }}
+                  >
+                    {savedArticles.length === 0 ? (
+                      <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+                        No saved articles
+                      </div>
+                    ) : (
+                      savedArticles.map((article) => (
+                        <div
+                          key={article.id}
+                          style={{
+                            padding: "12px",
+                            borderBottom: "1px solid #333",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            gap: "10px",
+                          }}
+                        >
+                          <a
+                            href={article.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: "#4da3ff",
+                              textDecoration: "none",
+                              fontSize: "13px",
+                              lineHeight: "1.3",
+                              flex: 1,
+                            }}
+                          >
+                            {article.title}
+                          </a>
+                          <button
+                            onClick={() => removeFromSaved(article.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              fontSize: "14px",
+                              color: "#888",
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Search Bar - Row 2 on Mobile, inline on Desktop */}
+          <form
+            onSubmit={handleSearch}
+            style={{
+              flex: 1,
+              maxWidth: isMobile ? "100%" : "550px",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ position: "relative", width: "100%" }}>
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={isMobile 
+                  ? "Smart search: 'what's up with OpenAI'" 
+                  : "Smart search: Understands typos & natural language: 'what's up with OpenAI'"
+                }
+                style={{
+                  width: "100%",
+                  padding: isMobile ? "10px 40px 10px 14px" : "11px 45px 11px 16px",
+                  fontSize: "13px",
+                  border: isMobile ? "1px solid #333" : "1px solid #ddd",
+                  borderRadius: "25px",
+                  background: isMobile ? "#1a1a1a" : "#fff",
+                  color: isMobile ? "#e0e0e0" : "#333",
+                  outline: "none",
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: isMobile ? "16px" : "18px",
+                  padding: "4px",
+                }}
+              >
+                🔍
+              </button>
+            </div>
+          </form>
+
+          {/* Saved - Desktop only */}
+          {!isMobile && (
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowSavedDropdown(!showSavedDropdown)}
+                style={{
+                  padding: "8px 12px",
+                  fontSize: "14px",
+                  background: "#fff",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  color: "#333",
+                }}
+              >
+                🔖 {savedArticles.length}
+              </button>
+
+              {showSavedDropdown && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: "4px",
+                    background: "#fff",
+                    border: "1px solid #ddd",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    zIndex: 1000,
+                    width: "300px",
+                    maxHeight: "400px",
+                    overflow: "auto",
+                  }}
+                >
+                  {savedArticles.length === 0 ? (
+                    <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+                      No saved articles
+                    </div>
+                  ) : (
+                    savedArticles.map((article) => (
+                      <div
+                        key={article.id}
+                        style={{
+                          padding: "12px",
+                          borderBottom: "1px solid #eee",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: "10px",
+                        }}
+                      >
+                        <a
+                          href={article.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: "#1a0dab",
+                            textDecoration: "none",
+                            fontSize: "13px",
+                            lineHeight: "1.3",
+                            flex: 1,
+                          }}
+                        >
+                          {article.title}
+                        </a>
+                        <button
+                          onClick={() => removeFromSaved(article.id)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            color: "#888",
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Click outside to close dropdown */}
+      {showSavedDropdown && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99,
+          }}
+          onClick={() => setShowSavedDropdown(false)}
+        />
+      )}
+
+      {/* MAIN CONTENT */}
+      <div style={{ padding: isMobile ? "15px" : "20px", maxWidth: "1000px", margin: "0 auto" }}>
+        
         {/* Results Info */}
         {query && !loading && (
           <div style={{ marginBottom: "20px" }}>
@@ -271,7 +507,7 @@ function SearchContent() {
           </p>
         )}
 
-        {/* Results */}
+        {/* Results - Original List Layout */}
         {!loading && articles.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {articles.map((item) => {
@@ -348,9 +584,9 @@ function SearchContent() {
 
                     <p
                       style={{
-                        margin: "0 0 10px",
-                        color: isMobile ? "#aaa" : "#555",
+                        color: isMobile ? "#bbb" : "#555",
                         fontSize: "14px",
+                        marginBottom: "10px",
                         lineHeight: "1.5",
                         display: "-webkit-box",
                         WebkitLineClamp: 2,
@@ -366,41 +602,45 @@ function SearchContent() {
                         display: "flex",
                         alignItems: "center",
                         gap: "12px",
-                        fontSize: "12px",
-                        color: isMobile ? "#888" : "#666",
+                        fontSize: "13px",
+                        color: isMobile ? "#888" : "#888",
                         flexWrap: "wrap",
                       }}
                     >
-                      <a
-                        href={item.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <span style={{ color: isMobile ? "#4da3ff" : "#0066cc" }}>
+                        {getSourceName(item.source_url)}
+                      </span>
+                      <span>•</span>
+                      <span>
+                        {new Date(item.published_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <span>•</span>
+                      <span
                         style={{
-                          color: isMobile ? "#4da3ff" : "#0066cc",
-                          textDecoration: "none",
-                          fontWeight: "500",
+                          background: borderColor,
+                          color: "white",
+                          padding: "2px 10px",
+                          borderRadius: "12px",
+                          fontSize: "11px",
+                          fontWeight: "600",
+                          textTransform: "uppercase",
                         }}
                       >
-                        {getSourceName(item.source_url)}
-                      </a>
-                      <span style={{ color: isMobile ? "#555" : "#ccc" }}>•</span>
-                      <span>
-                        {item.published_at
-                          ? new Date(item.published_at).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : ""}
+                        {item.sentiment_label}
                       </span>
                       {item.category && (
                         <>
-                          <span style={{ color: isMobile ? "#555" : "#ccc" }}>•</span>
+                          <span>•</span>
                           <span
                             style={{
-                              background: isMobile ? "#2a2a2a" : "#f0f0f0",
-                              padding: "2px 8px",
-                              borderRadius: "4px",
+                              background: isMobile ? "#333" : "#f0f0f0",
+                              padding: "2px 10px",
+                              borderRadius: "12px",
+                              fontSize: "11px",
                             }}
                           >
                             {item.category}
@@ -408,25 +648,6 @@ function SearchContent() {
                         </>
                       )}
                     </div>
-                  </div>
-
-                  {/* Sentiment Badge */}
-                  <div
-                    style={{
-                      background: borderColor,
-                      color: "white",
-                      padding: "8px 16px",
-                      borderRadius: "20px",
-                      fontWeight: "600",
-                      fontSize: "12px",
-                      textTransform: "uppercase",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                      alignSelf: isMobile ? "flex-start" : "center",
-                    }}
-                  >
-                    {item.sentiment_label}
                   </div>
                 </div>
               );
@@ -440,44 +661,38 @@ function SearchContent() {
             style={{
               display: "flex",
               justifyContent: "center",
-              alignItems: "center",
               gap: "20px",
-              margin: "40px 0",
-              fontSize: "16px",
+              marginTop: "40px",
+              marginBottom: "40px",
             }}
           >
             {currentPage > 0 && (
               <button
                 onClick={prevPage}
                 style={{
-                  padding: "10px 20px",
-                  background: isMobile ? "#2a2a2a" : "#f0f0f0",
-                  border: isMobile ? "1px solid #444" : "1px solid #ddd",
+                  padding: "10px 24px",
+                  background: isMobile ? "#333" : "#f0f0f0",
+                  border: "none",
                   borderRadius: "6px",
                   cursor: "pointer",
+                  fontSize: "14px",
                   color: isMobile ? "#e0e0e0" : "#333",
-                  fontWeight: "500",
                 }}
               >
                 ← Previous
               </button>
             )}
-
-            <span style={{ color: isMobile ? "#aaa" : "#666" }}>
-              Page {currentPage + 1}
-            </span>
-
             {hasMore && (
               <button
                 onClick={nextPage}
                 style={{
-                  padding: "10px 20px",
-                  background: "#0066cc",
+                  padding: "10px 24px",
+                  background: isMobile ? "#4da3ff" : "#0066cc",
+                  color: "white",
                   border: "none",
                   borderRadius: "6px",
                   cursor: "pointer",
-                  color: "white",
-                  fontWeight: "500",
+                  fontSize: "14px",
                 }}
               >
                 Next →
@@ -485,27 +700,11 @@ function SearchContent() {
             )}
           </div>
         )}
-
-        {/* No Results */}
-        {!loading && query && articles.length === 0 && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "60px 20px",
-              color: isMobile ? "#888" : "#666",
-            }}
-          >
-            <p style={{ fontSize: "48px", marginBottom: "16px" }}>🔍</p>
-            <p style={{ fontSize: "18px", marginBottom: "8px" }}>No articles found</p>
-            <p style={{ fontSize: "14px" }}>Try different keywords like "NVIDIA", "Bitcoin", or "AI"</p>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-// Wrap with Suspense for useSearchParams
 export default function SearchPage() {
   return (
     <Suspense fallback={<div style={{ padding: "40px", textAlign: "center" }}>Loading...</div>}>

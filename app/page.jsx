@@ -307,54 +307,234 @@ export default function Home() {
             maxWidth: "1400px",
             margin: "0 auto",
             display: "flex",
-            alignItems: "center",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : "center",
             justifyContent: "space-between",
-            gap: "12px",
+            gap: isMobile ? "10px" : "15px",
           }}
         >
-          {/* Logo */}
-          <h1
+          {/* Row 1 on Mobile: Logo + Category + Saved */}
+          <div
             style={{
-              fontSize: isMobile ? "18px" : "22px",
-              fontWeight: "700",
-              margin: 0,
-              cursor: "pointer",
-              color: isMobile ? "#ffffff" : "#1a1a1a",
-              whiteSpace: "nowrap",
-            }}
-            onClick={() => {
-              setSelectedCategory(null);
-              setCurrentPage(1);
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: isMobile ? "100%" : "auto",
             }}
           >
-            Tech Sentiments
-          </h1>
+            {/* Logo + Name */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                setSelectedCategory(null);
+                setCurrentPage(1);
+              }}
+            >
+              <img
+                src="/ts-logo.png"
+                alt="Logo"
+                style={{
+                  width: isMobile ? "28px" : "32px",
+                  height: isMobile ? "28px" : "32px",
+                }}
+              />
+              <h1
+                style={{
+                  fontSize: isMobile ? "18px" : "20px",
+                  fontWeight: "700",
+                  margin: 0,
+                  color: isMobile ? "#ffffff" : "#1a1a1a",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {isMobile ? "TS" : "Tech Sentiments"}
+              </h1>
+            </div>
 
-          {/* Search Bar */}
+            {/* Category & Saved - Always visible on right */}
+            {isMobile && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {/* Category Dropdown */}
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                    style={{
+                      padding: "6px 10px",
+                      fontSize: "12px",
+                      background: "#1a1a1a",
+                      border: "1px solid #333",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      color: "#e0e0e0",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    🏷️ {selectedCategory || "All"} ▼
+                  </button>
+
+                  {showCategoryDropdown && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        right: 0,
+                        marginTop: "4px",
+                        background: "#1a1a1a",
+                        border: "1px solid #333",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        zIndex: 1000,
+                        minWidth: "180px",
+                      }}
+                    >
+                      <div
+                        onClick={() => { setSelectedCategory(null); setCurrentPage(1); setShowCategoryDropdown(false); }}
+                        style={{
+                          padding: "10px 15px",
+                          cursor: "pointer",
+                          borderBottom: "1px solid #333",
+                          fontWeight: !selectedCategory ? "600" : "normal",
+                          color: "#e0e0e0",
+                        }}
+                      >
+                        All Categories
+                      </div>
+                      {categories.map((cat) => (
+                        <div
+                          key={cat}
+                          onClick={() => { setSelectedCategory(cat); setCurrentPage(1); setShowCategoryDropdown(false); }}
+                          style={{
+                            padding: "10px 15px",
+                            cursor: "pointer",
+                            borderBottom: "1px solid #333",
+                            fontWeight: selectedCategory === cat ? "600" : "normal",
+                            color: "#e0e0e0",
+                          }}
+                        >
+                          {cat}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Saved Dropdown */}
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setShowSavedDropdown(!showSavedDropdown)}
+                    style={{
+                      padding: "6px 10px",
+                      fontSize: "12px",
+                      background: "#1a1a1a",
+                      border: "1px solid #333",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      color: "#e0e0e0",
+                    }}
+                  >
+                    🔖 {savedArticles.length}
+                  </button>
+
+                  {showSavedDropdown && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        right: 0,
+                        marginTop: "4px",
+                        background: "#1a1a1a",
+                        border: "1px solid #333",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        zIndex: 1000,
+                        width: "280px",
+                        maxHeight: "400px",
+                        overflow: "auto",
+                      }}
+                    >
+                      {savedArticles.length === 0 ? (
+                        <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+                          No saved articles
+                        </div>
+                      ) : (
+                        savedArticles.map((article) => (
+                          <div
+                            key={article.id}
+                            style={{
+                              padding: "12px",
+                              borderBottom: "1px solid #333",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                              gap: "10px",
+                            }}
+                          >
+                            <a
+                              href={article.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "#4da3ff",
+                                textDecoration: "none",
+                                fontSize: "13px",
+                                lineHeight: "1.3",
+                                flex: 1,
+                              }}
+                            >
+                              {article.title}
+                            </a>
+                            <button
+                              onClick={() => removeFromSaved(article.id)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                color: "#888",
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Search Bar - Row 2 on Mobile, inline on Desktop */}
           <form
             onSubmit={handleSearch}
             style={{
               flex: 1,
-              maxWidth: "500px",
+              maxWidth: isMobile ? "100%" : "550px",
               display: "flex",
               alignItems: "center",
             }}
           >
-            <div
-              style={{
-                position: "relative",
-                width: "100%",
-              }}
-            >
+            <div style={{ position: "relative", width: "100%" }}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isMobile ? "Search..." : "Search news..."}
+                placeholder={isMobile 
+                  ? "Smart search: 'what's up with OpenAI'" 
+                  : "Smart search: Understands typos & natural language: 'what's up with OpenAI'"
+                }
                 style={{
                   width: "100%",
-                  padding: isMobile ? "8px 35px 8px 12px" : "10px 40px 10px 15px",
-                  fontSize: isMobile ? "14px" : "15px",
+                  padding: isMobile ? "10px 40px 10px 14px" : "11px 45px 11px 16px",
+                  fontSize: "13px",
                   border: isMobile ? "1px solid #333" : "1px solid #ddd",
                   borderRadius: "25px",
                   background: isMobile ? "#1a1a1a" : "#fff",
@@ -366,7 +546,7 @@ export default function Home() {
                 type="submit"
                 style={{
                   position: "absolute",
-                  right: "8px",
+                  right: "12px",
                   top: "50%",
                   transform: "translateY(-50%)",
                   background: "none",
@@ -381,158 +561,160 @@ export default function Home() {
             </div>
           </form>
 
-          {/* Category & Saved */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {/* Category Dropdown */}
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                style={{
-                  padding: isMobile ? "6px 10px" : "8px 12px",
-                  fontSize: isMobile ? "12px" : "14px",
-                  background: isMobile ? "#1a1a1a" : "#fff",
-                  border: isMobile ? "1px solid #333" : "1px solid #ddd",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  color: isMobile ? "#e0e0e0" : "#333",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                }}
-              >
-                🏷️ {selectedCategory || "All"} ▼
-              </button>
-
-              {showCategoryDropdown && (
-                <div
+          {/* Category & Saved - Desktop only (already shown on mobile above) */}
+          {!isMobile && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {/* Category Dropdown */}
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                   style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    marginTop: "4px",
-                    background: isMobile ? "#1a1a1a" : "#fff",
-                    border: isMobile ? "1px solid #333" : "1px solid #ddd",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    zIndex: 1000,
-                    minWidth: "180px",
+                    padding: "8px 12px",
+                    fontSize: "14px",
+                    background: "#fff",
+                    border: "1px solid #ddd",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    color: "#333",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
                   }}
                 >
+                  🏷️ {selectedCategory || "All"} ▼
+                </button>
+
+                {showCategoryDropdown && (
                   <div
-                    onClick={() => { setSelectedCategory(null); setCurrentPage(1); setShowCategoryDropdown(false); }}
                     style={{
-                      padding: "10px 15px",
-                      cursor: "pointer",
-                      borderBottom: isMobile ? "1px solid #333" : "1px solid #eee",
-                      fontWeight: !selectedCategory ? "600" : "normal",
-                      color: isMobile ? "#e0e0e0" : "#333",
+                      position: "absolute",
+                      top: "100%",
+                      right: 0,
+                      marginTop: "4px",
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      zIndex: 1000,
+                      minWidth: "180px",
                     }}
                   >
-                    All Categories
-                  </div>
-                  {categories.map((cat) => (
                     <div
-                      key={cat}
-                      onClick={() => { setSelectedCategory(cat); setCurrentPage(1); setShowCategoryDropdown(false); }}
+                      onClick={() => { setSelectedCategory(null); setCurrentPage(1); setShowCategoryDropdown(false); }}
                       style={{
                         padding: "10px 15px",
                         cursor: "pointer",
-                        borderBottom: isMobile ? "1px solid #333" : "1px solid #eee",
-                        fontWeight: selectedCategory === cat ? "600" : "normal",
-                        color: isMobile ? "#e0e0e0" : "#333",
+                        borderBottom: "1px solid #eee",
+                        fontWeight: !selectedCategory ? "600" : "normal",
+                        color: "#333",
                       }}
                     >
-                      {cat}
+                      All Categories
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Saved Dropdown */}
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => setShowSavedDropdown(!showSavedDropdown)}
-                style={{
-                  padding: isMobile ? "6px 10px" : "8px 12px",
-                  fontSize: isMobile ? "12px" : "14px",
-                  background: isMobile ? "#1a1a1a" : "#fff",
-                  border: isMobile ? "1px solid #333" : "1px solid #ddd",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  color: isMobile ? "#e0e0e0" : "#333",
-                }}
-              >
-                🔖 {savedArticles.length}
-              </button>
-
-              {showSavedDropdown && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    marginTop: "4px",
-                    background: isMobile ? "#1a1a1a" : "#fff",
-                    border: isMobile ? "1px solid #333" : "1px solid #ddd",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    zIndex: 1000,
-                    width: "300px",
-                    maxHeight: "400px",
-                    overflow: "auto",
-                  }}
-                >
-                  {savedArticles.length === 0 ? (
-                    <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
-                      No saved articles
-                    </div>
-                  ) : (
-                    savedArticles.map((article) => (
+                    {categories.map((cat) => (
                       <div
-                        key={article.id}
+                        key={cat}
+                        onClick={() => { setSelectedCategory(cat); setCurrentPage(1); setShowCategoryDropdown(false); }}
                         style={{
-                          padding: "12px",
-                          borderBottom: isMobile ? "1px solid #333" : "1px solid #eee",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          gap: "10px",
+                          padding: "10px 15px",
+                          cursor: "pointer",
+                          borderBottom: "1px solid #eee",
+                          fontWeight: selectedCategory === cat ? "600" : "normal",
+                          color: "#333",
                         }}
                       >
-                        <a
-                          href={article.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            color: isMobile ? "#4da3ff" : "#1a0dab",
-                            textDecoration: "none",
-                            fontSize: "13px",
-                            lineHeight: "1.3",
-                            flex: 1,
-                          }}
-                        >
-                          {article.title}
-                        </a>
-                        <button
-                          onClick={() => removeFromSaved(article.id)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            color: "#888",
-                          }}
-                        >
-                          ✕
-                        </button>
+                        {cat}
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Saved Dropdown */}
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setShowSavedDropdown(!showSavedDropdown)}
+                  style={{
+                    padding: "8px 12px",
+                    fontSize: "14px",
+                    background: "#fff",
+                    border: "1px solid #ddd",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    color: "#333",
+                  }}
+                >
+                  🔖 {savedArticles.length}
+                </button>
+
+                {showSavedDropdown && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      right: 0,
+                      marginTop: "4px",
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      zIndex: 1000,
+                      width: "300px",
+                      maxHeight: "400px",
+                      overflow: "auto",
+                    }}
+                  >
+                    {savedArticles.length === 0 ? (
+                      <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+                        No saved articles
+                      </div>
+                    ) : (
+                      savedArticles.map((article) => (
+                        <div
+                          key={article.id}
+                          style={{
+                            padding: "12px",
+                            borderBottom: "1px solid #eee",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            gap: "10px",
+                          }}
+                        >
+                          <a
+                            href={article.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: "#1a0dab",
+                              textDecoration: "none",
+                              fontSize: "13px",
+                              lineHeight: "1.3",
+                              flex: 1,
+                            }}
+                          >
+                            {article.title}
+                          </a>
+                          <button
+                            onClick={() => removeFromSaved(article.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              fontSize: "14px",
+                              color: "#888",
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </header>
 
@@ -691,13 +873,13 @@ export default function Home() {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Pagination - Google Style */}
         <div
           style={{
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            gap: "15px",
+            gap: isMobile ? "8px" : "12px",
             margin: "40px 0",
             fontSize: "14px",
             color: isMobile ? "#aaa" : "#666",
@@ -709,29 +891,26 @@ export default function Home() {
               onClick={(e) => { e.preventDefault(); prevPage(); }}
               style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none" }}
             >
-              &lt; Previous
+              Previous
             </a>
           )}
 
           {(() => {
             const pages = [];
-            const showPages = isMobile ? 3 : 5;
-            let start = Math.max(1, currentPage - Math.floor(showPages / 2));
-            let end = Math.min(totalPages, start + showPages - 1);
+            const maxVisible = isMobile ? 6 : 10;
             
-            if (end - start < showPages - 1) {
-              start = Math.max(1, end - showPages + 1);
+            // Calculate start and end pages (sliding window)
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = startPage + maxVisible - 1;
+            
+            // Adjust if we're near the end
+            if (endPage > totalPages) {
+              endPage = totalPages;
+              startPage = Math.max(1, endPage - maxVisible + 1);
             }
-
-            if (start > 1) {
-              pages.push(
-                <a key={1} href="#" onClick={(e) => { e.preventDefault(); goToPage(1); }}
-                  style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none" }}>1</a>
-              );
-              if (start > 2) pages.push(<span key="dots1">...</span>);
-            }
-
-            for (let i = start; i <= end; i++) {
+            
+            // Render page numbers
+            for (let i = startPage; i <= endPage; i++) {
               pages.push(
                 <a
                   key={i}
@@ -741,22 +920,16 @@ export default function Home() {
                     color: i === currentPage ? (isMobile ? "#fff" : "#333") : (isMobile ? "#4da3ff" : "#1a0dab"),
                     fontWeight: i === currentPage ? "700" : "normal",
                     textDecoration: "none",
-                    padding: "4px 8px",
-                    background: i === currentPage ? (isMobile ? "#333" : "#e8e8e8") : "none",
-                    borderRadius: "4px",
                   }}
                 >
                   {i}
                 </a>
               );
             }
-
-            if (end < totalPages) {
-              if (end < totalPages - 1) pages.push(<span key="dots2">...</span>);
-              pages.push(
-                <a key={totalPages} href="#" onClick={(e) => { e.preventDefault(); goToPage(totalPages); }}
-                  style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none" }}>{totalPages}</a>
-              );
+            
+            // Add "..." if there are more pages after
+            if (endPage < totalPages) {
+              pages.push(<span key="dots">...</span>);
             }
 
             return pages;
@@ -768,7 +941,7 @@ export default function Home() {
               onClick={(e) => { e.preventDefault(); nextPage(); }}
               style={{ color: isMobile ? "#4da3ff" : "#1a0dab", textDecoration: "none" }}
             >
-              Next &gt;
+              Next
             </a>
           )}
         </div>
