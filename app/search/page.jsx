@@ -398,7 +398,7 @@ function SearchContent() {
                 style={{
                   width: "100%",
                   padding: isMobile ? "10px 40px 10px 14px" : "11px 45px 11px 16px",
-                  fontSize: "13px",
+                  fontSize: isMobile ? "16px" : "13px",
                   border: isMobile ? "1px solid #333" : "1px solid #ddd",
                   borderRadius: "25px",
                   background: isMobile ? "#1a1a1a" : "#fff",
