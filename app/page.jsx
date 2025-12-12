@@ -127,15 +127,14 @@ export default function Home() {
   }, []);
 
   const calculateTotalPages = () => {
-    const countUrl = selectedCategory
-      ? `https://tech-mood-backend-production.up.railway.app/articles/count?category=${encodeURIComponent(selectedCategory)}`
-      : "https://tech-mood-backend-production.up.railway.app/articles/count";
-
-    fetch(countUrl)
+    // Get count from images endpoint (pages based on 12 images per page)
+    const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
+    
+    fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=0&limit=1${categoryParam}`)
       .then((res) => res.json())
       .then((json) => {
-        const total = json.count || 0;
-        const pages = Math.ceil(total / 24);
+        const imageCount = json.count || 0;
+        const pages = Math.ceil(imageCount / 12);
         setTotalPages(pages);
       })
       .catch(() => setTotalPages(1));
@@ -144,19 +143,26 @@ export default function Home() {
   // Prefetch next page in background
   useEffect(() => {
     if (!loading && currentPage < totalPages) {
-      const nextPageNum = currentPage; // API is 0-indexed, so page 2 = index 1 = currentPage when on page 1
-      const cacheKey = `${selectedCategory || 'all'}-${nextPageNum}`;
+      const nextPage = currentPage; // currentPage is 1-indexed, API is 0-indexed
+      const cacheKey = `${selectedCategory || 'all'}-${nextPage}`;
       
       if (!pageCache[cacheKey]) {
-        const url = selectedCategory
-          ? `https://tech-mood-backend-production.up.railway.app/articles/page/${nextPageNum}?category=${encodeURIComponent(selectedCategory)}`
-          : `https://tech-mood-backend-production.up.railway.app/articles/page/${nextPageNum}`;
+        const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
+        const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
+        const limit = isMobileDevice ? 6 : 12;
         
-        fetch(url)
-          .then((res) => res.json())
-          .then((json) => {
-            const articles = Array.isArray(json.articles) ? json.articles : [];
-            setPageCache(prev => ({ ...prev, [cacheKey]: articles }));
+        // Prefetch both endpoints in parallel
+        Promise.all([
+          fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=${nextPage}&limit=${limit}${categoryParam}`),
+          fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=${nextPage}&limit=${limit}${categoryParam}`)
+        ])
+          .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
+          .then(([imgJson, txtJson]) => {
+            const combined = {
+              images: imgJson.articles || [],
+              text: txtJson.articles || []
+            };
+            setPageCache(prev => ({ ...prev, [cacheKey]: combined }));
             console.log(`Prefetched page ${currentPage + 1}`);
           })
           .catch(() => {});
@@ -166,7 +172,7 @@ export default function Home() {
 
   // Load articles
   const loadArticles = () => {
-    const pageNum = currentPage - 1;
+    const pageNum = currentPage - 1; // API is 0-indexed
     const cacheKey = `${selectedCategory || 'all'}-${pageNum}`;
 
     if (pageCache[cacheKey]) {
@@ -175,44 +181,34 @@ export default function Home() {
     }
 
     setLoading(true);
-    let url;
+    
+    const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
+    const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const limit = isMobileDevice ? 6 : 12;
 
-    if (currentPage === 1) {
-      url = selectedCategory
-        ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(selectedCategory)}`
-        : "https://tech-mood-backend-production.up.railway.app/articles";
-    } else {
-      url = selectedCategory
-        ? `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
-        : `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}`;
-    }
-
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        const allArticles = Array.isArray(json.articles) ? json.articles : [];
-        setPageCache(prev => ({ ...prev, [cacheKey]: allArticles }));
-        processArticles(allArticles);
+    // Fetch both endpoints in parallel
+    Promise.all([
+      fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=${pageNum}&limit=${limit}${categoryParam}`),
+      fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=${pageNum}&limit=${limit}${categoryParam}`)
+    ])
+      .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
+      .then(([imgJson, txtJson]) => {
+        const combined = {
+          images: imgJson.articles || [],
+          text: txtJson.articles || []
+        };
+        setPageCache(prev => ({ ...prev, [cacheKey]: combined }));
+        processArticles(combined);
       })
       .catch(() => setLoading(false));
   };
 
   // Process articles - alternating image/text
-  const processArticles = (allArticles) => {
+  const processArticles = (data) => {
     const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
-    const articlesPerPage = isMobileDevice ? 12 : 24;
-    const halfCount = articlesPerPage / 2;
-
-    // Sort by published_at DESC
-    const sorted = allArticles.sort((a, b) => 
-      new Date(b.published_at) - new Date(a.published_at)
-    );
-
-    const withImages = sorted.filter((a) => a.image_url);
-    const withoutImages = sorted.filter((a) => !a.image_url);
-
-    const topImages = withImages.slice(0, halfCount);
-    const topText = withoutImages.slice(0, halfCount);
+    
+    const imageArticles = data.images || [];
+    const textArticles = data.text || [];
 
     // Alternate: 4 images, 4 text, 4 images, 4 text... (desktop)
     // Or: 1 image, 1 text, 1 image, 1 text... (mobile)
@@ -221,11 +217,11 @@ export default function Home() {
     const imgChunks = [];
     const txtChunks = [];
 
-    for (let i = 0; i < topImages.length; i += chunkSize) {
-      imgChunks.push(topImages.slice(i, i + chunkSize));
+    for (let i = 0; i < imageArticles.length; i += chunkSize) {
+      imgChunks.push(imageArticles.slice(i, i + chunkSize));
     }
-    for (let i = 0; i < topText.length; i += chunkSize) {
-      txtChunks.push(topText.slice(i, i + chunkSize));
+    for (let i = 0; i < textArticles.length; i += chunkSize) {
+      txtChunks.push(textArticles.slice(i, i + chunkSize));
     }
 
     const maxChunks = Math.max(imgChunks.length, txtChunks.length);
@@ -300,8 +296,7 @@ export default function Home() {
           borderBottom: isMobile ? "1px solid #222" : "1px solid #e0e0e0",
           position: "sticky",
           top: 0,
-          zIndex: 100,
-          overflowX: "hidden",
+          zIndex: 1000,
         }}
       >
         <div
@@ -347,6 +342,9 @@ export default function Home() {
                   height: isMobile ? "28px" : "32px",
                 }}
               />
+
+                
+
               <h1
                 style={{
                   fontSize: isMobile ? "18px" : "20px",
@@ -358,8 +356,9 @@ export default function Home() {
               >
                 {isMobile ? "TS" : "Tech Sentiments"}
               </h1>
+              
             </div>
-
+           
             {/* Category & Saved - Always visible on right */}
             {isMobile && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -950,8 +949,17 @@ export default function Home() {
               Next
             </a>
           )}
+
+
+
+
         </div>
+        
       </main>
+
+
+
+      
     </div>
   );
 }

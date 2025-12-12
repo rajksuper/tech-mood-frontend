@@ -105,7 +105,7 @@ function SearchContent() {
     setLoading(true);
     try {
       const res = await fetch(
-        `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(searchQuery)}&page=${page - 1}&limit=50`
+        `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(searchQuery)}&page=${page - 1}&limit=100`
       );
       const json = await res.json();
       
@@ -114,26 +114,44 @@ function SearchContent() {
       
       // Check device type directly
       const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
-      const articlesPerPage = isMobileDevice ? 12 : 24;
+      const limit = isMobileDevice ? 6 : 12;
       
-      // Calculate total pages
-      const pages = Math.ceil(total / articlesPerPage);
-      setTotalPages(pages);
-      setTotalCount(total);
-      
-      // Process articles - alternate image/text
+      // Separate into image and text articles
       const withImages = allArticles.filter(a => a.image_url);
       const withoutImages = allArticles.filter(a => !a.image_url);
       
-      const combined = [];
-      const maxLen = Math.max(withImages.length, withoutImages.length);
+      // Take exactly 'limit' of each type
+      const imageArticles = withImages.slice(0, limit);
+      const textArticles = withoutImages.slice(0, limit);
       
-      for (let i = 0; i < maxLen && combined.length < articlesPerPage; i++) {
-        if (withImages[i]) combined.push(withImages[i]);
-        if (withoutImages[i] && combined.length < articlesPerPage) combined.push(withoutImages[i]);
+      // Alternate: 4 images, 4 text, 4 images, 4 text... (desktop)
+      // Or: 1 image, 1 text, 1 image, 1 text... (mobile)
+      const combined = [];
+      const chunkSize = isMobileDevice ? 1 : 4;
+      const imgChunks = [];
+      const txtChunks = [];
+
+      for (let i = 0; i < imageArticles.length; i += chunkSize) {
+        imgChunks.push(imageArticles.slice(i, i + chunkSize));
+      }
+      for (let i = 0; i < textArticles.length; i += chunkSize) {
+        txtChunks.push(textArticles.slice(i, i + chunkSize));
+      }
+
+      const maxChunks = Math.max(imgChunks.length, txtChunks.length);
+      for (let i = 0; i < maxChunks; i++) {
+        if (imgChunks[i]) combined.push(...imgChunks[i]);
+        if (txtChunks[i]) combined.push(...txtChunks[i]);
       }
       
-      setArticles(combined.slice(0, articlesPerPage));
+      // Calculate total pages based on smaller count (images or text)
+      const minCount = Math.min(withImages.length, withoutImages.length);
+      const articlesPerPage = limit * 2;
+      const pages = Math.max(1, Math.ceil(total / articlesPerPage));
+      
+      setTotalPages(pages);
+      setTotalCount(total);
+      setArticles(combined);
       setCurrentPage(page);
       setCorrectedQuery(json.corrected_query || null);
       
@@ -147,7 +165,7 @@ function SearchContent() {
       if (page < pages) {
         const prefetchTerm = json.corrected_query || searchQuery;
         fetch(
-          `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(prefetchTerm)}&page=${page}&limit=50`
+          `https://tech-mood-backend-production.up.railway.app/search?q=${encodeURIComponent(prefetchTerm)}&page=${page}&limit=100`
         ).catch(() => {});
       }
     } catch (err) {
@@ -512,7 +530,14 @@ function SearchContent() {
       )}
 
       {/* MAIN CONTENT */}
-      <main style={{ padding: isMobile ? "15px" : "20px", maxWidth: "1400px", margin: "0 auto" }}>
+      <main style={{ 
+        padding: isMobile ? "15px" : "20px", 
+        maxWidth: "1400px", 
+        margin: "0 auto",
+        overflowX: "hidden",
+        boxSizing: "border-box",
+        width: "100%",
+      }}>
         
         {/* Results Info */}
         {query && !loading && (
@@ -599,6 +624,7 @@ function SearchContent() {
                         WebkitBoxOrient: "vertical",
                         overflow: "hidden",
                         marginBottom: "8px",
+                        wordBreak: "break-word",
                       }}
                     >
                       {article.title}
