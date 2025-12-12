@@ -687,7 +687,7 @@ export default function Home() {
                           onMouseEnter={(e) => e.target.style.background = isMobile ? "#333" : "#f5f5f5"}
                           onMouseLeave={(e) => e.target.style.background = "transparent"}
                         >
-                          <span style={{ color: isMobile ? "#4da3ff" : "#1a0dab" }}>🔍</span>
+                         
                           {suggestion}
                         </div>
                       ))}
@@ -736,7 +736,7 @@ export default function Home() {
                           onMouseEnter={(e) => e.target.style.background = isMobile ? "#333" : "#f5f5f5"}
                           onMouseLeave={(e) => e.target.style.background = "transparent"}
                         >
-                          <span style={{ color: "#888" }}>🕐</span>
+                          {/*<span style={{ color: "#888" }}>🕐</span>*/}
                           {query}
                         </div>
                       ))}
