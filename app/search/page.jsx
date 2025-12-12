@@ -14,6 +14,25 @@ function getSourceName(url) {
   }
 }
 
+// Get relative time (e.g., "2h", "3d", "1w")
+function getTimeAgo(publishedAt) {
+  if (!publishedAt) return "";
+  
+  const now = new Date();
+  const published = new Date(publishedAt);
+  const diffMs = now - published;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return "now";
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 7) return `${diffDays}d`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w`;
+  return ""; // Over 30 days - show nothing
+}
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
@@ -672,7 +691,7 @@ function SearchContent() {
                           {article.sentiment_label}
                         </span>
                         <span style={{ fontSize: "11px", color: "#888" }}>
-                          {getSourceName(article.source_url)}
+                          {getSourceName(article.source_url)}{getTimeAgo(article.published_at) && ` • ${getTimeAgo(article.published_at)}`}
                         </span>
                       </div>
 
@@ -795,15 +814,7 @@ function SearchContent() {
                       }}
                     >
                       <span style={{ color: "#0066cc" }}>
-                        {getSourceName(item.source_url)}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        {new Date(item.published_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                        {getSourceName(item.source_url)}{getTimeAgo(item.published_at) && ` • ${getTimeAgo(item.published_at)}`}
                       </span>
                       <span>•</span>
                       <span

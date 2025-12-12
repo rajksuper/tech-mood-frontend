@@ -12,6 +12,25 @@ function getSourceName(url) {
   }
 }
 
+// Get relative time (e.g., "2h", "3d", "1w")
+function getTimeAgo(publishedAt) {
+  if (!publishedAt) return "";
+  
+  const now = new Date();
+  const published = new Date(publishedAt);
+  const diffMs = now - published;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return "now";
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 7) return `${diffDays}d`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w`;
+  return ""; // Over 30 days - show nothing
+}
+
 export default function Home() {
   const router = useRouter();
   const [categories, setCategories] = useState([]);
@@ -25,6 +44,10 @@ export default function Home() {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [autocompleteResults, setAutocompleteResults] = useState([]);
+  const [isLoadingAutocomplete, setIsLoadingAutocomplete] = useState(false);
 
   // Save functionality
   const [savedArticles, setSavedArticles] = useState([]);
@@ -40,15 +63,65 @@ export default function Home() {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      // Save to recent searches
+      const query = searchQuery.trim().toLowerCase();
+      const updated = [query, ...recentSearches.filter(q => q !== query)].slice(0, 5);
+      setRecentSearches(updated);
+      localStorage.setItem('recentSearches', JSON.stringify(updated));
+      setShowSearchDropdown(false);
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
-  // Load saved from localStorage on mount
+  // Load saved articles and recent searches from localStorage on mount
   useEffect(() => {
     const storedSaved = localStorage.getItem('savedArticles');
     if (storedSaved) setSavedArticles(JSON.parse(storedSaved));
+    
+    const storedSearches = localStorage.getItem('recentSearches');
+    if (storedSearches) setRecentSearches(JSON.parse(storedSearches));
   }, []);
+
+  // Autocomplete - fetch suggestions as user types
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setAutocompleteResults([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setIsLoadingAutocomplete(true);
+      fetch(`https://tech-mood-backend-production.up.railway.app/autocomplete?q=${encodeURIComponent(searchQuery)}`)
+        .then(res => res.json())
+        .then(data => {
+          setAutocompleteResults(data.suggestions || []);
+          setIsLoadingAutocomplete(false);
+        })
+        .catch(() => {
+          setAutocompleteResults([]);
+          setIsLoadingAutocomplete(false);
+        });
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Handle clicking a suggestion
+  const handleSuggestionClick = (suggestion) => {
+    setSearchQuery(suggestion);
+    setShowSearchDropdown(false);
+    // Save to recent and navigate
+    const updated = [suggestion, ...recentSearches.filter(q => q !== suggestion)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem('recentSearches', JSON.stringify(updated));
+    router.push(`/search?q=${encodeURIComponent(suggestion)}`);
+  };
+
+  // Clear recent searches
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    localStorage.removeItem('recentSearches');
+  };
 
   // Save article
   const saveArticle = (article) => {
@@ -524,13 +597,18 @@ export default function Home() {
               minWidth: 0,
               display: "flex",
               alignItems: "center",
+              position: "relative",
             }}
           >
             <div style={{ position: "relative", width: "100%", minWidth: 0 }}>
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSearchDropdown(true);
+                }}
+                onFocus={() => setShowSearchDropdown(true)}
                 placeholder={isMobile 
                   ? "Smart search: 'what's up with OpenAI'" 
                   : "Smart search: Understands typos & natural language: 'what's up with OpenAI'"
@@ -563,6 +641,116 @@ export default function Home() {
               >
                 🔍
               </button>
+
+              {/* Search Dropdown - Recent & Autocomplete */}
+              {showSearchDropdown && (searchQuery.length > 0 || recentSearches.length > 0) && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    marginTop: "4px",
+                    background: isMobile ? "#1a1a1a" : "#fff",
+                    border: isMobile ? "1px solid #333" : "1px solid #ddd",
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    zIndex: 1001,
+                    maxHeight: "300px",
+                    overflow: "auto",
+                  }}
+                >
+                  {/* Autocomplete Results */}
+                  {searchQuery.length >= 2 && autocompleteResults.length > 0 && (
+                    <>
+                      <div style={{ 
+                        padding: "8px 12px", 
+                        fontSize: "11px", 
+                        color: isMobile ? "#888" : "#666",
+                        borderBottom: isMobile ? "1px solid #333" : "1px solid #eee"
+                      }}>
+                        Suggestions
+                      </div>
+                      {autocompleteResults.map((suggestion, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          style={{
+                            padding: "10px 12px",
+                            cursor: "pointer",
+                            borderBottom: isMobile ? "1px solid #333" : "1px solid #eee",
+                            color: isMobile ? "#e0e0e0" : "#333",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = isMobile ? "#333" : "#f5f5f5"}
+                          onMouseLeave={(e) => e.target.style.background = "transparent"}
+                        >
+                          <span style={{ color: isMobile ? "#4da3ff" : "#1a0dab" }}>🔍</span>
+                          {suggestion}
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Recent Searches */}
+                  {searchQuery.length < 2 && recentSearches.length > 0 && (
+                    <>
+                      <div style={{ 
+                        padding: "8px 12px", 
+                        fontSize: "11px", 
+                        color: isMobile ? "#888" : "#666",
+                        borderBottom: isMobile ? "1px solid #333" : "1px solid #eee",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}>
+                        <span>Recent Searches</span>
+                        <button
+                          onClick={(e) => { e.preventDefault(); clearRecentSearches(); }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: isMobile ? "#4da3ff" : "#1a0dab",
+                            fontSize: "11px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      {recentSearches.map((query, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleSuggestionClick(query)}
+                          style={{
+                            padding: "10px 12px",
+                            cursor: "pointer",
+                            borderBottom: isMobile ? "1px solid #333" : "1px solid #eee",
+                            color: isMobile ? "#e0e0e0" : "#333",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = isMobile ? "#333" : "#f5f5f5"}
+                          onMouseLeave={(e) => e.target.style.background = "transparent"}
+                        >
+                          <span style={{ color: "#888" }}>🕐</span>
+                          {query}
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Loading */}
+                  {isLoadingAutocomplete && searchQuery.length >= 2 && (
+                    <div style={{ padding: "12px", textAlign: "center", color: "#888" }}>
+                      Loading...
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </form>
 
@@ -724,7 +912,7 @@ export default function Home() {
       </header>
 
       {/* Click outside to close dropdowns */}
-      {(showCategoryDropdown || showSavedDropdown) && (
+      {(showCategoryDropdown || showSavedDropdown || showSearchDropdown) && (
         <div
           style={{
             position: "fixed",
@@ -734,7 +922,7 @@ export default function Home() {
             bottom: 0,
             zIndex: 99,
           }}
-          onClick={() => { setShowCategoryDropdown(false); setShowSavedDropdown(false); }}
+          onClick={() => { setShowCategoryDropdown(false); setShowSavedDropdown(false); setShowSearchDropdown(false); }}
         />
       )}
 
@@ -854,7 +1042,7 @@ export default function Home() {
                           {article.sentiment_label}
                         </span>
                         <span style={{ fontSize: "11px", color: isMobile ? "#888" : "#999" }}>
-                          {getSourceName(article.source_url)}
+                          {getSourceName(article.source_url)}{getTimeAgo(article.published_at) && ` • ${getTimeAgo(article.published_at)}`}
                         </span>
                       </div>
 
