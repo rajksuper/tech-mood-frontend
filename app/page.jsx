@@ -36,6 +36,7 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [articles, setArticles] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSource, setSelectedSource] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -202,8 +203,9 @@ export default function Home() {
   const calculateTotalPages = () => {
     // Get count from images endpoint (pages based on 12 images per page)
     const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
+    const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
     
-    fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=0&limit=1${categoryParam}`)
+    fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=0&limit=1${categoryParam}${sourceParam}`)
       .then((res) => res.json())
       .then((json) => {
         const imageCount = json.count || 0;
@@ -217,17 +219,18 @@ export default function Home() {
   useEffect(() => {
     if (!loading && currentPage < totalPages) {
       const nextPage = currentPage; // currentPage is 1-indexed, API is 0-indexed
-      const cacheKey = `${selectedCategory || 'all'}-${nextPage}`;
+      const cacheKey = `${selectedCategory || 'all'}-${selectedSource || 'all'}-${nextPage}`;
       
       if (!pageCache[cacheKey]) {
         const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
+        const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
         const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
         const limit = isMobileDevice ? 6 : 12;
         
         // Prefetch both endpoints in parallel
         Promise.all([
-          fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=${nextPage}&limit=${limit}${categoryParam}`),
-          fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=${nextPage}&limit=${limit}${categoryParam}`)
+          fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
+          fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`)
         ])
           .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
           .then(([imgJson, txtJson]) => {
@@ -241,12 +244,12 @@ export default function Home() {
           .catch(() => {});
       }
     }
-  }, [loading, currentPage, totalPages, selectedCategory]);
+  }, [loading, currentPage, totalPages, selectedCategory, selectedSource]);
 
   // Load articles
   const loadArticles = () => {
     const pageNum = currentPage - 1; // API is 0-indexed
-    const cacheKey = `${selectedCategory || 'all'}-${pageNum}`;
+    const cacheKey = `${selectedCategory || 'all'}-${selectedSource || 'all'}-${pageNum}`;
 
     if (pageCache[cacheKey]) {
       processArticles(pageCache[cacheKey]);
@@ -256,13 +259,14 @@ export default function Home() {
     setLoading(true);
     
     const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
+    const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
     const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
     const limit = isMobileDevice ? 6 : 12;
 
     // Fetch both endpoints in parallel
     Promise.all([
-      fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=${pageNum}&limit=${limit}${categoryParam}`),
-      fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=${pageNum}&limit=${limit}${categoryParam}`)
+      fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`),
+      fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`)
     ])
       .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
       .then(([imgJson, txtJson]) => {
@@ -307,18 +311,18 @@ export default function Home() {
     setLoading(false);
   };
 
-  // Clear cache when category changes
+  // Clear cache when category or source changes
   useEffect(() => {
     setPageCache({});
-  }, [selectedCategory]);
+  }, [selectedCategory, selectedSource]);
 
-  // Load articles when page or category changes
+  // Load articles when page or category or source changes
   useEffect(() => {
     if (hasMounted) {
       loadArticles();
       calculateTotalPages();
     }
-  }, [currentPage, selectedCategory, hasMounted]);
+  }, [currentPage, selectedCategory, selectedSource, hasMounted]);
 
   const goToPage = (pageNum) => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -432,9 +436,32 @@ export default function Home() {
               
             </div>
            
-            {/* Category & Saved - Always visible on right */}
+            {/* Source Filter, Category & Saved - Always visible on right */}
             {isMobile && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {/* Source Filter - Only show when active */}
+                {selectedSource && (
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <span style={{ color: "#3b82f6" }}>{selectedSource}</span>
+                    <span
+                      onClick={() => setSelectedSource(null)}
+                      style={{
+                        cursor: "pointer",
+                        color: "#888",
+                      }}
+                    >
+                      ✕
+                    </span>
+                  </div>
+                )}
+
                 {/* Category Dropdown */}
                 <div style={{ position: "relative" }}>
                   <button
@@ -643,7 +670,7 @@ export default function Home() {
               </button>
 
               {/* Search Dropdown - Recent & Autocomplete */}
-              {showSearchDropdown && (searchQuery.length > 0 || recentSearches.length > 0) && (
+              {showSearchDropdown && (recentSearches.length > 0 || autocompleteResults.length > 0 || isLoadingAutocomplete) && (
                 <div
                   style={{
                     position: "absolute",
@@ -687,7 +714,6 @@ export default function Home() {
                           onMouseEnter={(e) => e.target.style.background = isMobile ? "#333" : "#f5f5f5"}
                           onMouseLeave={(e) => e.target.style.background = "transparent"}
                         >
-                         
                           {suggestion}
                         </div>
                       ))}
@@ -736,7 +762,6 @@ export default function Home() {
                           onMouseEnter={(e) => e.target.style.background = isMobile ? "#333" : "#f5f5f5"}
                           onMouseLeave={(e) => e.target.style.background = "transparent"}
                         >
-                          {/*<span style={{ color: "#888" }}>🕐</span>*/}
                           {query}
                         </div>
                       ))}
@@ -754,9 +779,32 @@ export default function Home() {
             </div>
           </form>
 
-          {/* Category & Saved - Desktop only (already shown on mobile above) */}
+          {/* Source Filter, Category & Saved - Desktop only (already shown on mobile above) */}
           {!isMobile && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {/* Source Filter - Only show when active */}
+              {selectedSource && (
+                <div
+                  style={{
+                    fontSize: "14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <span style={{ color: "#1976d2" }}>{selectedSource}</span>
+                  <span
+                    onClick={() => setSelectedSource(null)}
+                    style={{
+                      cursor: "pointer",
+                      color: "#888",
+                    }}
+                  >
+                    ✕
+                  </span>
+                </div>
+              )}
+
               {/* Category Dropdown */}
               <div style={{ position: "relative" }}>
                 <button
@@ -1042,7 +1090,22 @@ export default function Home() {
                           {article.sentiment_label}
                         </span>
                         <span style={{ fontSize: "11px", color: isMobile ? "#888" : "#999" }}>
-                          {getSourceName(article.source_url)}{getTimeAgo(article.published_at) && ` • ${getTimeAgo(article.published_at)}`}
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSource(getSourceName(article.source_url));
+                              setCurrentPage(1);
+                            }}
+                            style={{
+                              cursor: "pointer",
+                              transition: "color 0.2s",
+                            }}
+                            onMouseEnter={(e) => e.target.style.color = isMobile ? "#3b82f6" : "#1976d2"}
+                            onMouseLeave={(e) => e.target.style.color = isMobile ? "#888" : "#999"}
+                          >
+                            {getSourceName(article.source_url)}
+                          </span>
+                          {getTimeAgo(article.published_at) && ` • ${getTimeAgo(article.published_at)}`}
                         </span>
                       </div>
 
