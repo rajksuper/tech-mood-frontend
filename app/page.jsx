@@ -201,15 +201,22 @@ export default function Home() {
   }, []);
 
   const calculateTotalPages = () => {
-    // Get count from images endpoint (pages based on 12 images per page)
+    // Get count from both endpoints (24 articles per page = 12 images + 12 text)
     const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
     const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
     
-    fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=0&limit=1${categoryParam}${sourceParam}`)
-      .then((res) => res.json())
-      .then((json) => {
-        const imageCount = json.count || 0;
-        const pages = Math.ceil(imageCount / 12);
+    // Fetch both counts in parallel
+    Promise.all([
+      fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
+      fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
+    ])
+      .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
+      .then(([imgJson, txtJson]) => {
+        const imageCount = imgJson.count || 0;
+        const textCount = txtJson.count || 0;
+        // Use the larger count for pagination (whichever has more articles)
+        const maxCount = Math.max(imageCount, textCount);
+        const pages = Math.max(1, Math.ceil(maxCount / 12));
         setTotalPages(pages);
       })
       .catch(() => setTotalPages(1));
@@ -224,8 +231,7 @@ export default function Home() {
       if (!pageCache[cacheKey]) {
         const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
         const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
-        const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
-        const limit = isMobileDevice ? 6 : 12;
+        const limit = 12; // Always 12 images + 12 text = 24 articles
         
         // Prefetch both endpoints in parallel
         Promise.all([
@@ -260,8 +266,7 @@ export default function Home() {
     
     const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
     const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
-    const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
-    const limit = isMobileDevice ? 6 : 12;
+    const limit = 12; // Always 12 images + 12 text = 24 articles
 
     // Fetch both endpoints in parallel
     Promise.all([
@@ -282,15 +287,12 @@ export default function Home() {
 
   // Process articles - alternating image/text
   const processArticles = (data) => {
-    const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
-    
     const imageArticles = data.images || [];
     const textArticles = data.text || [];
 
-    // Alternate: 4 images, 4 text, 4 images, 4 text... (desktop)
-    // Or: 1 image, 1 text, 1 image, 1 text... (mobile)
+    // Alternate: 4 images, 4 text, 4 images, 4 text...
     const combined = [];
-    const chunkSize = isMobileDevice ? 1 : 4;
+    const chunkSize = 4;
     const imgChunks = [];
     const txtChunks = [];
 
