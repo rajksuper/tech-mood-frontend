@@ -253,12 +253,12 @@ export default function Home() {
   }, [loading, currentPage, totalPages, selectedCategory, selectedSource]);
 
   // Load articles
-  const loadArticles = () => {
+  const loadArticles = (mobileView) => {
     const pageNum = currentPage - 1; // API is 0-indexed
     const cacheKey = `${selectedCategory || 'all'}-${selectedSource || 'all'}-${pageNum}`;
 
     if (pageCache[cacheKey]) {
-      processArticles(pageCache[cacheKey]);
+      processArticles(pageCache[cacheKey], mobileView);
       return;
     }
 
@@ -280,33 +280,42 @@ export default function Home() {
           text: txtJson.articles || []
         };
         setPageCache(prev => ({ ...prev, [cacheKey]: combined }));
-        processArticles(combined);
+        processArticles(combined, mobileView);
       })
       .catch(() => setLoading(false));
   };
 
   // Process articles - alternating image/text
-  const processArticles = (data) => {
+  const processArticles = (data, mobileView = false) => {
     const imageArticles = data.images || [];
     const textArticles = data.text || [];
-
-    // Alternate: 4 images, 4 text, 4 images, 4 text...
     const combined = [];
-    const chunkSize = 4;
-    const imgChunks = [];
-    const txtChunks = [];
 
-    for (let i = 0; i < imageArticles.length; i += chunkSize) {
-      imgChunks.push(imageArticles.slice(i, i + chunkSize));
-    }
-    for (let i = 0; i < textArticles.length; i += chunkSize) {
-      txtChunks.push(textArticles.slice(i, i + chunkSize));
-    }
+    if (mobileView) {
+      // Mobile: Alternate 1 image, 1 text for a cleaner feed
+      const maxLen = Math.max(imageArticles.length, textArticles.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (imageArticles[i]) combined.push(imageArticles[i]);
+        if (textArticles[i]) combined.push(textArticles[i]);
+      }
+    } else {
+      // Desktop: Alternate in chunks of 4 for grid layout
+      const chunkSize = 4;
+      const imgChunks = [];
+      const txtChunks = [];
 
-    const maxChunks = Math.max(imgChunks.length, txtChunks.length);
-    for (let i = 0; i < maxChunks; i++) {
-      if (imgChunks[i]) combined.push(...imgChunks[i]);
-      if (txtChunks[i]) combined.push(...txtChunks[i]);
+      for (let i = 0; i < imageArticles.length; i += chunkSize) {
+        imgChunks.push(imageArticles.slice(i, i + chunkSize));
+      }
+      for (let i = 0; i < textArticles.length; i += chunkSize) {
+        txtChunks.push(textArticles.slice(i, i + chunkSize));
+      }
+
+      const maxChunks = Math.max(imgChunks.length, txtChunks.length);
+      for (let i = 0; i < maxChunks; i++) {
+        if (imgChunks[i]) combined.push(...imgChunks[i]);
+        if (txtChunks[i]) combined.push(...txtChunks[i]);
+      }
     }
 
     setArticles(combined);
@@ -318,13 +327,13 @@ export default function Home() {
     setPageCache({});
   }, [selectedCategory, selectedSource]);
 
-  // Load articles when page or category or source changes
+  // Load articles when page or category or source or mobile state changes
   useEffect(() => {
     if (hasMounted) {
-      loadArticles();
+      loadArticles(isMobile);
       calculateTotalPages();
     }
-  }, [currentPage, selectedCategory, selectedSource, hasMounted]);
+  }, [currentPage, selectedCategory, selectedSource, hasMounted, isMobile]);
 
   const goToPage = (pageNum) => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -1008,7 +1017,9 @@ export default function Home() {
                     borderRadius: "10px",
                     overflow: "hidden",
                     boxShadow: isMobile ? "none" : "0 2px 8px rgba(0,0,0,0.08)",
-                    border: isMobile ? "1px solid #2a2a2a" : "1px solid #e8e8e8",
+                    borderTop: isMobile ? "1px solid #2a2a2a" : "1px solid #e8e8e8",
+                    borderRight: isMobile ? "1px solid #2a2a2a" : "1px solid #e8e8e8",
+                    borderBottom: isMobile ? "1px solid #2a2a2a" : "1px solid #e8e8e8",
                     borderLeft: `4px solid ${borderColor}`,
                   }}
                 >
