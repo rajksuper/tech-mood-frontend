@@ -1358,7 +1358,7 @@ export default function Home() {
         marginTop: "20px",
       }}
     >
-      © 2025 TechSentiments • No spam, unsubscribe anytime
+      Contact: mail@techsentiments.com© 2025 TechSentiments • No spam, unsubscribe anytime
     </p>
   </div>
 </footer>
