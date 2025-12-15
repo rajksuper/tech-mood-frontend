@@ -1218,6 +1218,150 @@ export default function Home() {
 
 
         </div>
+
+        {/* 
+  EMAIL SUBSCRIBE FOOTER
+  Add this just before the closing </main> tag in your page.jsx
+*/}
+
+{/* Footer */}
+<footer
+  style={{
+    background: isMobile ? "#0a0a0a" : "#1a1a1a",
+    borderTop: isMobile ? "1px solid #222" : "1px solid #333",
+    padding: isMobile ? "30px 15px" : "40px 20px",
+    marginTop: "40px",
+  }}
+>
+  <div
+    style={{
+      maxWidth: "600px",
+      margin: "0 auto",
+      textAlign: "center",
+    }}
+  >
+    <h3
+      style={{
+        color: "#fff",
+        fontSize: isMobile ? "18px" : "20px",
+        fontWeight: "600",
+        marginBottom: "8px",
+      }}
+    >
+      Stay Updated
+    </h3>
+    <p
+      style={{
+        color: "#888",
+        fontSize: "14px",
+        marginBottom: "20px",
+      }}
+    >
+      Get weekly tech sentiment insights delivered to your inbox
+    </p>
+
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const email = form.email.value;
+        const button = form.querySelector('button');
+        const originalText = button.innerText;
+        
+        button.innerText = "Subscribing...";
+        button.disabled = true;
+
+        try {
+          const res = await fetch("https://tech-mood-backend-production.up.railway.app/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const data = await res.json();
+          
+          if (data.success) {
+            button.innerText = "✓ Subscribed!";
+            button.style.background = "#22c55e";
+            form.email.value = "";
+            setTimeout(() => {
+              button.innerText = originalText;
+              button.style.background = "#3b82f6";
+              button.disabled = false;
+            }, 3000);
+          } else {
+            button.innerText = data.message || "Try again";
+            button.style.background = "#ef4444";
+            setTimeout(() => {
+              button.innerText = originalText;
+              button.style.background = "#3b82f6";
+              button.disabled = false;
+            }, 2000);
+          }
+        } catch (err) {
+          button.innerText = "Error - Try again";
+          button.style.background = "#ef4444";
+          setTimeout(() => {
+            button.innerText = originalText;
+            button.style.background = "#3b82f6";
+            button.disabled = false;
+          }, 2000);
+        }
+      }}
+      style={{
+        display: "flex",
+        gap: "10px",
+        justifyContent: "center",
+        flexDirection: isMobile ? "column" : "row",
+        maxWidth: "400px",
+        margin: "0 auto",
+      }}
+    >
+      <input
+        type="email"
+        name="email"
+        placeholder="Enter your email"
+        required
+        style={{
+          flex: 1,
+          padding: "12px 16px",
+          borderRadius: "8px",
+          border: "1px solid #333",
+          background: "#2a2a2a",
+          color: "#fff",
+          fontSize: "14px",
+          outline: "none",
+        }}
+      />
+      <button
+        type="submit"
+        style={{
+          padding: "12px 24px",
+          borderRadius: "8px",
+          border: "none",
+          background: "#3b82f6",
+          color: "#fff",
+          fontSize: "14px",
+          fontWeight: "600",
+          cursor: "pointer",
+          transition: "background 0.2s",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Subscribe
+      </button>
+    </form>
+
+    <p
+      style={{
+        color: "#555",
+        fontSize: "12px",
+        marginTop: "20px",
+      }}
+    >
+      © 2025 TechSentiments • No spam, unsubscribe anytime
+    </p>
+  </div>
+</footer>
         
       </main>
 
