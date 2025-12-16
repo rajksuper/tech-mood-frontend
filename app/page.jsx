@@ -1373,7 +1373,15 @@ export default function Home() {
         />
       </a>
     </div>
-
+     <p
+      style={{
+        color: "#aad5e5ff",
+        fontSize: "13px",
+        marginTop: "20px",
+      }}
+    >
+        🚀 Launched on Product Hunt — Top 15 Product of the Day
+        </p>
     <p
       style={{
         color: "#555",
