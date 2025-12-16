@@ -1351,6 +1351,29 @@ export default function Home() {
       </button>
     </form>
 
+         <div
+      style={{
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "15px",
+        marginTop: "25px",
+      }}
+    >
+      <a
+        href="https://www.producthunt.com/products/tech-sentiments?utm_source=badge-featured&utm_medium=badge"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <img
+          src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1050288&theme=dark"
+          alt="Tech Sentiments on Product Hunt"
+          style={{ width: "200px", height: "43px" }}
+        />
+      </a>
+    </div>
+
     <p
       style={{
         color: "#555",
