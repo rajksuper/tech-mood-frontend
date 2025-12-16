@@ -1362,12 +1362,12 @@ export default function Home() {
       }}
     >
       <a
-        href="https://www.producthunt.com/products/tech-sentiments?utm_source=badge-featured&utm_medium=badge"
+        href="https://www.producthunt.com/products/tech-sentiments?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-tech&#0045;sentiments"
         target="_blank"
         rel="noopener noreferrer"
       >
         <img
-          src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1050288&theme=dark"
+          src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1050288&theme=dark&t=1765870491107"
           alt="Tech Sentiments on Product Hunt"
           style={{ width: "200px", height: "43px" }}
         />
