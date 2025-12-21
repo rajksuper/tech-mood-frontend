@@ -1,4 +1,5 @@
-// app/layout.jsx
+import { Analytics } from '@vercel/analytics/react';
+
 export const metadata = {
   title: "Tech Sentiments - AI-Powered Tech News Sentiment Analysis",
   description: "Real-time tech news with AI sentiment analysis. Track Bitcoin, Tesla, Nvidia, OpenAI and more. See if news is positive, negative, or neutral instantly.",
@@ -77,6 +78,7 @@ export default function RootLayout({ children }) {
       </head>
       <body style={{ margin: 0, fontFamily: "Arial, sans-serif" }}>
         {children}
+        <Analytics />
       </body>
     </html>
   );
