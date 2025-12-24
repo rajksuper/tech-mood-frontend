@@ -1354,7 +1354,7 @@ export default function Home() {
          
      <p
       style={{
-        color: "#aad5e5ff",
+        color: "#555",
         fontSize: "13px",
         marginTop: "20px",
       }}
@@ -1363,7 +1363,7 @@ export default function Home() {
         </p>
     <p
       style={{
-        color: "#555",
+        color: "#aad5e5ff",
         fontSize: "12px",
         marginTop: "20px",
       }}
