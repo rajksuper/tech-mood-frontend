@@ -31,6 +31,75 @@ function getTimeAgo(publishedAt) {
   return ""; // Over 30 days - show nothing
 }
 
+// Generate hashtags for sharing
+function getShareHashtags(category, title) {
+  const categoryTags = {
+    "AI & ML": "AI,MachineLearning,Tech",
+    "Startups & VC": "Startups,VC,Funding",
+    "Cybersecurity": "Cybersecurity,InfoSec,Security",
+    "Big Tech": "BigTech,Tech,Technology",
+    "Markets & Finance": "Fintech,Finance,Markets",
+    "General Tech": "Tech,TechNews",
+  };
+  
+  let tags = categoryTags[category] || "Tech,TechNews";
+  
+  // Add company-specific tags based on title
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes("openai") || titleLower.includes("chatgpt")) tags += ",OpenAI";
+  if (titleLower.includes("google") || titleLower.includes("gemini")) tags += ",Google";
+  if (titleLower.includes("microsoft") || titleLower.includes("copilot")) tags += ",Microsoft";
+  if (titleLower.includes("apple") || titleLower.includes("iphone")) tags += ",Apple";
+  if (titleLower.includes("tesla") || titleLower.includes("elon")) tags += ",Tesla";
+  if (titleLower.includes("nvidia")) tags += ",NVIDIA";
+  if (titleLower.includes("meta") || titleLower.includes("facebook")) tags += ",Meta";
+  if (titleLower.includes("amazon") || titleLower.includes("aws")) tags += ",Amazon";
+  if (titleLower.includes("bitcoin") || titleLower.includes("btc")) tags += ",Bitcoin";
+  if (titleLower.includes("ethereum")) tags += ",Ethereum";
+  if (titleLower.includes("anthropic") || titleLower.includes("claude")) tags += ",Anthropic";
+  
+  return tags;
+}
+
+// Share to Twitter/X
+function shareToTwitter(article) {
+  const hashtags = getShareHashtags(article.category, article.title);
+  const text = encodeURIComponent(article.title);
+  const url = encodeURIComponent(article.source_url);
+  
+  window.open(
+    `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`,
+    '_blank',
+    'width=550,height=420'
+  );
+}
+
+// Share to LinkedIn
+function shareToLinkedIn(article) {
+  const url = encodeURIComponent(article.source_url);
+  
+  window.open(
+    `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+    '_blank',
+    'width=550,height=420'
+  );
+}
+
+// Copy formatted text for Groups/Reddit/anywhere
+function copyForShare(article, setCopiedId) {
+  const hashtags = getShareHashtags(article.category, article.title)
+    .split(',')
+    .map(tag => `#${tag}`)
+    .join(' ');
+  
+  const text = `${article.title}\n\n${hashtags}\n\n${article.source_url}`;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    setCopiedId(article.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  });
+}
+
 export default function Home() {
   const router = useRouter();
   const [categories, setCategories] = useState([]);
@@ -59,6 +128,9 @@ export default function Home() {
 
   // Page cache
   const [pageCache, setPageCache] = useState({});
+
+  // Copy feedback state
+  const [copiedId, setCopiedId] = useState(null);
 
   // Handle search submit
   const handleSearch = (e) => {
@@ -1122,18 +1194,82 @@ export default function Home() {
                         </span>
                       </div>
 
-                      <button
-                        onClick={() => toggleSave(article)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: "16px",
-                          opacity: isSaved ? 1 : 0.4,
-                        }}
-                      >
-                        🔖
-                      </button>
+                      {/* Share & Save buttons */}
+                      <div style={{ display: "flex", gap: "2px", alignItems: "center" }}>
+                        {/* Twitter/X */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); shareToTwitter(article); }}
+                          title="Share to X (Twitter)"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            opacity: 0.5,
+                            padding: "4px 6px",
+                            fontWeight: "bold",
+                            transition: "opacity 0.2s",
+                          }}
+                          onMouseEnter={(e) => e.target.style.opacity = 1}
+                          onMouseLeave={(e) => e.target.style.opacity = 0.5}
+                        >
+                          𝕏
+                        </button>
+
+                        {/* LinkedIn */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); shareToLinkedIn(article); }}
+                          title="Share to LinkedIn"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            opacity: 0.5,
+                            padding: "4px 6px",
+                            transition: "opacity 0.2s",
+                          }}
+                          onMouseEnter={(e) => e.target.style.opacity = 1}
+                          onMouseLeave={(e) => e.target.style.opacity = 0.5}
+                        >
+                          in
+                        </button>
+
+                        {/* Copy Link */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); copyForShare(article, setCopiedId); }}
+                          title="Copy for sharing (Reddit, Groups, etc.)"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            opacity: copiedId === article.id ? 1 : 0.5,
+                            padding: "4px 6px",
+                            transition: "opacity 0.2s",
+                          }}
+                          onMouseEnter={(e) => e.target.style.opacity = 1}
+                          onMouseLeave={(e) => { if (copiedId !== article.id) e.target.style.opacity = 0.5; }}
+                        >
+                          {copiedId === article.id ? "✓" : "📋"}
+                        </button>
+
+                        {/* Save/Bookmark */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleSave(article); }}
+                          title={isSaved ? "Remove from saved" : "Save for later"}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            opacity: isSaved ? 1 : 0.4,
+                            padding: "4px 6px",
+                          }}
+                        >
+                          🔖
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
