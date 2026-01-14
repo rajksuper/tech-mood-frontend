@@ -164,7 +164,7 @@ export default function Home() {
 
     const timer = setTimeout(() => {
       setIsLoadingAutocomplete(true);
-      fetch(`https://tech-mood-backend-production.up.railway.app/autocomplete?q=${encodeURIComponent(searchQuery)}`)
+      fetch(`https://techsentiments.com/autocomplete?q=${encodeURIComponent(searchQuery)}`)
         .then(res => res.json())
         .then(data => {
           setAutocompleteResults(data.suggestions || []);
@@ -264,7 +264,7 @@ export default function Home() {
 
   // Fetch categories
   useEffect(() => {
-    fetch("https://tech-mood-backend-production.up.railway.app/categories")
+    fetch("https://techsentiments.com/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
@@ -279,8 +279,8 @@ export default function Home() {
     
     // Fetch both counts in parallel
     Promise.all([
-      fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
-      fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
+      fetch(`https://techsentiments.com/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
+      fetch(`https://techsentiments.com/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
     ])
       .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
       .then(([imgJson, txtJson]) => {
@@ -307,8 +307,8 @@ export default function Home() {
         
         // Prefetch both endpoints in parallel
         Promise.all([
-          fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
-          fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`)
+          fetch(`https://techsentiments.com/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
+          fetch(`https://techsentiments.com/articles/text?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`)
         ])
           .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
           .then(([imgJson, txtJson]) => {
@@ -342,8 +342,8 @@ export default function Home() {
 
     // Fetch both endpoints in parallel
     Promise.all([
-      fetch(`https://tech-mood-backend-production.up.railway.app/articles/images?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`),
-      fetch(`https://tech-mood-backend-production.up.railway.app/articles/text?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`)
+      fetch(`https://techsentiments.com/articles/images?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`),
+      fetch(`https://techsentiments.com/articles/text?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`)
     ])
       .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
       .then(([imgJson, txtJson]) => {
@@ -1408,7 +1408,7 @@ export default function Home() {
         button.disabled = true;
 
         try {
-          const res = await fetch("https://tech-mood-backend-production.up.railway.app/subscribe", {
+          const res = await fetch("https://techsentiments.com/subscribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),

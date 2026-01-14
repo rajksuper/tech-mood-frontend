@@ -37,7 +37,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch("https://tech-mood-backend-production.up.railway.app/categories")
+    fetch("https://techsentiments.com/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
@@ -48,8 +48,8 @@ export default function Home() {
 
   const calculateTotalPages = () => {
     const countUrl = selectedCategory
-      ? `https://tech-mood-backend-production.up.railway.app/articles/count?category=${encodeURIComponent(selectedCategory)}`
-      : "https://tech-mood-backend-production.up.railway.app/articles/count";
+      ? `https://techsentiments.com/articles/count?category=${encodeURIComponent(selectedCategory)}`
+      : "https://techsentiments.com/articles/count";
     
     fetch(countUrl)
       .then((res) => res.json())
@@ -109,12 +109,12 @@ export default function Home() {
     
     if (currentPage === 1) {
       url = selectedCategory
-        ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(selectedCategory)}`
-        : "https://tech-mood-backend-production.up.railway.app/articles";
+        ? `https://techsentiments.com/articles?category=${encodeURIComponent(selectedCategory)}`
+        : "https://techsentiments.com/articles";
     } else {
       url = selectedCategory
-        ? `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
-        : `https://tech-mood-backend-production.up.railway.app/articles/page/${pageNum}`;
+        ? `https://techsentiments.com/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
+        : `https://techsentiments.com/articles/page/${pageNum}`;
     }
 
     fetch(url)

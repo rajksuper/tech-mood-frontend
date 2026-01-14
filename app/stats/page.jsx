@@ -9,7 +9,7 @@ export default function StatsPage() {
 
   const fetchCount = () => {
     setLoading(true);
-    fetch("https://tech-mood-backend-production.up.railway.app/articles/count")
+    fetch("https://techsentiments.com/articles/count")
       .then((res) => res.json())
       .then((json) => {
         setTotal(json.count || 0);

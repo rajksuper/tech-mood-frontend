@@ -23,7 +23,7 @@ export default function Home() {
 
   useEffect(() => {
     // Fetch categories
-    fetch("https://tech-mood-backend-production.up.railway.app/categories")
+    fetch("https://techsentiments.com/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
@@ -37,8 +37,8 @@ export default function Home() {
     setLoading(true);
     setPage(0);
     const url = selectedCategory
-      ? `https://tech-mood-backend-production.up.railway.app/articles?category=${encodeURIComponent(selectedCategory)}`
-      : "https://tech-mood-backend-production.up.railway.app/articles";
+      ? `https://techsentiments.com/articles?category=${encodeURIComponent(selectedCategory)}`
+      : "https://techsentiments.com/articles";
 
     fetch(url)
       .then((res) => res.json())
@@ -67,8 +67,8 @@ export default function Home() {
     setLoadingMore(true);
     const nextPage = page + 1;
     const url = selectedCategory
-      ? `https://tech-mood-backend-production.up.railway.app/articles/page/${nextPage}?category=${encodeURIComponent(selectedCategory)}`
-      : `https://tech-mood-backend-production.up.railway.app/articles/page/${nextPage}`;
+      ? `https://techsentiments.com/articles/page/${nextPage}?category=${encodeURIComponent(selectedCategory)}`
+      : `https://techsentiments.com/articles/page/${nextPage}`;
 
     fetch(url)
       .then((res) => res.json())
