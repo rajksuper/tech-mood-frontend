@@ -23,7 +23,7 @@ export default function Home() {
 
   useEffect(() => {
     // Fetch categories
-    fetch("https://techsentiments.com/categories")
+    fetch("https://api.techsentiments.com/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});

@@ -264,7 +264,7 @@ export default function Home() {
 
   // Fetch categories
   useEffect(() => {
-    fetch("https://techsentiments.com/categories")
+    fetch("https://api.techsentiments.com/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
@@ -1408,7 +1408,7 @@ export default function Home() {
         button.disabled = true;
 
         try {
-          const res = await fetch("https://techsentiments.com/subscribe", {
+          const res = await fetch("https://api.techsentiments.com/subscribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
