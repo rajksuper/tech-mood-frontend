@@ -164,7 +164,7 @@ export default function Home() {
 
     const timer = setTimeout(() => {
       setIsLoadingAutocomplete(true);
-      fetch(`https://techsentiments.com/autocomplete?q=${encodeURIComponent(searchQuery)}`)
+      fetch(`https://api.techsentiments.com/autocomplete?q=${encodeURIComponent(searchQuery)}`)
         .then(res => res.json())
         .then(data => {
           setAutocompleteResults(data.suggestions || []);
@@ -279,8 +279,8 @@ export default function Home() {
     
     // Fetch both counts in parallel
     Promise.all([
-      fetch(`https://techsentiments.com/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
-      fetch(`https://techsentiments.com/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
+      fetch(`https://api.techsentiments.com/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
+      fetch(`https://api.techsentiments.com/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
     ])
       .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
       .then(([imgJson, txtJson]) => {
@@ -307,8 +307,8 @@ export default function Home() {
         
         // Prefetch both endpoints in parallel
         Promise.all([
-          fetch(`https://techsentiments.com/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
-          fetch(`https://techsentiments.com/articles/text?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`)
+          fetch(`https://api.techsentiments.com/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
+          fetch(`https://api.techsentiments.com/articles/text?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`)
         ])
           .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
           .then(([imgJson, txtJson]) => {
@@ -342,8 +342,8 @@ export default function Home() {
 
     // Fetch both endpoints in parallel
     Promise.all([
-      fetch(`https://techsentiments.com/articles/images?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`),
-      fetch(`https://techsentiments.com/articles/text?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`)
+      fetch(`https://api.techsentiments.com/articles/images?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`),
+      fetch(`https://api.techsentiments.com/articles/text?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`)
     ])
       .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
       .then(([imgJson, txtJson]) => {

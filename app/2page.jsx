@@ -37,8 +37,8 @@ export default function Home() {
     setLoading(true);
     setPage(0);
     const url = selectedCategory
-      ? `https://techsentiments.com/articles?category=${encodeURIComponent(selectedCategory)}`
-      : "https://techsentiments.com/articles";
+      ? `https://api.techsentiments.com/articles?category=${encodeURIComponent(selectedCategory)}`
+      : "https://api.techsentiments.com/articles";
 
     fetch(url)
       .then((res) => res.json())
@@ -67,8 +67,8 @@ export default function Home() {
     setLoadingMore(true);
     const nextPage = page + 1;
     const url = selectedCategory
-      ? `https://techsentiments.com/articles/page/${nextPage}?category=${encodeURIComponent(selectedCategory)}`
-      : `https://techsentiments.com/articles/page/${nextPage}`;
+      ? `https://api.techsentiments.com/articles/page/${nextPage}?category=${encodeURIComponent(selectedCategory)}`
+      : `https://api.techsentiments.com/articles/page/${nextPage}`;
 
     fetch(url)
       .then((res) => res.json())

@@ -124,7 +124,7 @@ function SearchContent() {
     setLoading(true);
     try {
       const res = await fetch(
-        `https://techsentiments.com/search?q=${encodeURIComponent(searchQuery)}&page=${page - 1}&limit=100`
+        `https://api.techsentiments.com/search?q=${encodeURIComponent(searchQuery)}&page=${page - 1}&limit=100`
       );
       const json = await res.json();
       
@@ -184,7 +184,7 @@ function SearchContent() {
       if (page < pages) {
         const prefetchTerm = json.corrected_query || searchQuery;
         fetch(
-          `https://techsentiments.com/search?q=${encodeURIComponent(prefetchTerm)}&page=${page}&limit=100`
+          `https://api.techsentiments.com/search?q=${encodeURIComponent(prefetchTerm)}&page=${page}&limit=100`
         ).catch(() => {});
       }
     } catch (err) {

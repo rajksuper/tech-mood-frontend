@@ -48,8 +48,8 @@ export default function Home() {
 
   const calculateTotalPages = () => {
     const countUrl = selectedCategory
-      ? `https://techsentiments.com/articles/count?category=${encodeURIComponent(selectedCategory)}`
-      : "https://techsentiments.com/articles/count";
+      ? `https://api.techsentiments.com/articles/count?category=${encodeURIComponent(selectedCategory)}`
+      : "https://api.techsentiments.com/articles/count";
     
     fetch(countUrl)
       .then((res) => res.json())
@@ -109,12 +109,12 @@ export default function Home() {
     
     if (currentPage === 1) {
       url = selectedCategory
-        ? `https://techsentiments.com/articles?category=${encodeURIComponent(selectedCategory)}`
-        : "https://techsentiments.com/articles";
+        ? `https://api.techsentiments.com/articles?category=${encodeURIComponent(selectedCategory)}`
+        : "https://api.techsentiments.com/articles";
     } else {
       url = selectedCategory
-        ? `https://techsentiments.com/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
-        : `https://techsentiments.com/articles/page/${pageNum}`;
+        ? `https://api.techsentiments.com/articles/page/${pageNum}?category=${encodeURIComponent(selectedCategory)}`
+        : `https://api.techsentiments.com/articles/page/${pageNum}`;
     }
 
     fetch(url)
