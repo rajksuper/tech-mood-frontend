@@ -9,7 +9,7 @@ export default function ArticlePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/article/${id}`)
+    fetch(`https://api.techsentiments.com/article/${id}`)
       .then((res) => res.json())
       .then((json) => {
         setArticle(json.data);
