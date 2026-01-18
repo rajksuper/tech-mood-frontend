@@ -24,13 +24,13 @@ export default function Home() {
 
   useEffect(() => {
     // Fetch categories
-    fetch("http://127.0.0.1:8000/categories")
+    fetch("https://api.techsentiments.com/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
 
     // Fetch trending
-    fetch("http://127.0.0.1:8000/trending")
+    fetch("https://api.techsentiments.com/trending")
       .then((res) => res.json())
       .then((json) => setTrending((json.trending || []).slice(0, 10)))
       .catch(() => {});
@@ -44,8 +44,8 @@ export default function Home() {
     setLoading(true);
     setPage(0);
     const url = selectedCategory
-      ? `http://127.0.0.1:8000/articles?category=${encodeURIComponent(selectedCategory)}`
-      : "http://127.0.0.1:8000/articles";
+      ? `https://api.techsentiments.com/articles?category=${encodeURIComponent(selectedCategory)}`
+      : "https://api.techsentiments.com/articles";
 
     fetch(url)
       .then((res) => res.json())
@@ -68,8 +68,8 @@ export default function Home() {
     setLoadingMore(true);
     const nextPage = page + 1;
     const url = selectedCategory
-      ? `http://127.0.0.1:8000/articles/page/${nextPage}?category=${encodeURIComponent(selectedCategory)}`
-      : `http://127.0.0.1:8000/articles/page/${nextPage}`;
+      ? `https://api.techsentiments.com/articles/page/${nextPage}?category=${encodeURIComponent(selectedCategory)}`
+      : `https://api.techsentiments.com/articles/page/${nextPage}`;
 
     fetch(url)
       .then((res) => res.json())
