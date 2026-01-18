@@ -61,14 +61,11 @@ function getShareHashtags(category, title) {
   return tags;
 }
 
-// UPDATED SHARE FUNCTIONS FOR YOUR MAIN PAGE.JSX
-// Replace the existing share functions with these
-
-// Share to Twitter/X - NOW shares YOUR article page
+// Share to Twitter/X
 function shareToTwitter(article) {
   const hashtags = getShareHashtags(article.category, article.title);
   const text = encodeURIComponent(article.title);
-  const url = encodeURIComponent(`https://techsentiments.com/article/${article.id}`); // CHANGED
+  const url = encodeURIComponent(article.source_url);
   
   window.open(
     `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`,
@@ -77,9 +74,9 @@ function shareToTwitter(article) {
   );
 }
 
-// Share to LinkedIn - NOW shares YOUR article page
+// Share to LinkedIn
 function shareToLinkedIn(article) {
-  const url = encodeURIComponent(`https://techsentiments.com/article/${article.id}`); // CHANGED
+  const url = encodeURIComponent(article.source_url);
   
   window.open(
     `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
@@ -88,15 +85,14 @@ function shareToLinkedIn(article) {
   );
 }
 
-// Copy formatted text - NOW includes YOUR article page link
+// Copy formatted text for Groups/Reddit/anywhere
 function copyForShare(article, setCopiedId) {
   const hashtags = getShareHashtags(article.category, article.title)
     .split(',')
     .map(tag => `#${tag}`)
     .join(' ');
   
-  const url = `https://techsentiments.com/article/${article.id}`; // CHANGED
-  const text = `${article.title}\n\n${hashtags}\n\n${url}`; // Now uses your site URL
+  const text = `${article.title}\n\n${hashtags}\n\n${article.source_url}`;
   
   navigator.clipboard.writeText(text).then(() => {
     setCopiedId(article.id);
