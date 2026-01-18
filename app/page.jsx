@@ -61,11 +61,14 @@ function getShareHashtags(category, title) {
   return tags;
 }
 
-// Share to Twitter/X
+// UPDATED SHARE FUNCTIONS FOR YOUR MAIN PAGE.JSX
+// Replace the existing share functions with these
+
+// Share to Twitter/X - NOW shares YOUR article page
 function shareToTwitter(article) {
   const hashtags = getShareHashtags(article.category, article.title);
   const text = encodeURIComponent(article.title);
-  const url = encodeURIComponent(article.source_url);
+  const url = encodeURIComponent(`https://techsentiments.com/article/${article.id}`); // CHANGED
   
   window.open(
     `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`,
@@ -74,9 +77,9 @@ function shareToTwitter(article) {
   );
 }
 
-// Share to LinkedIn
+// Share to LinkedIn - NOW shares YOUR article page
 function shareToLinkedIn(article) {
-  const url = encodeURIComponent(article.source_url);
+  const url = encodeURIComponent(`https://techsentiments.com/article/${article.id}`); // CHANGED
   
   window.open(
     `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
@@ -85,20 +88,26 @@ function shareToLinkedIn(article) {
   );
 }
 
-// Copy formatted text for Groups/Reddit/anywhere
+// Copy formatted text - NOW includes YOUR article page link
 function copyForShare(article, setCopiedId) {
   const hashtags = getShareHashtags(article.category, article.title)
     .split(',')
     .map(tag => `#${tag}`)
     .join(' ');
   
-  const text = `${article.title}\n\n${hashtags}\n\n${article.source_url}`;
+  const url = `https://techsentiments.com/article/${article.id}`; // CHANGED
+  const text = `${article.title}\n\n${hashtags}\n\n${url}`; // Now uses your site URL
   
   navigator.clipboard.writeText(text).then(() => {
     setCopiedId(article.id);
     setTimeout(() => setCopiedId(null), 2000);
   });
 }
+
+// INSTRUCTIONS:
+// 1. In your main page.jsx, find these 3 functions (around lines 64-100)
+// 2. Replace them with the versions above
+// 3. The ONLY change is: article.source_url → https://techsentiments.com/article/${article.id}
 
 export default function Home() {
   const router = useRouter();
