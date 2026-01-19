@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+// Helper: Decode HTML entities
+function decodeHtmlEntities(text) {
+  if (!text) return "";
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = text;
+  return textarea.value;
+}
+
 // Helper: Get source name from URL
 function getSourceName(url) {
   try {
@@ -600,13 +608,13 @@ export default function ArticleClient({ id }) {
         />
       )}
 
-      {/* Main Article */}
+      {/* Main Article - Only show on page 1 */}
       <main style={{
         maxWidth: '900px',
         margin: '0 auto',
         padding: isMobile ? '20px 15px' : '40px 20px'
       }}>
-        {/* Article Card */}
+        {currentPage === 1 && (
         <div style={{
           background: isMobile ? '#1a1a1a' : 'white',
           borderRadius: '12px',
@@ -701,7 +709,7 @@ export default function ArticleClient({ id }) {
               borderRadius: '8px',
               borderLeft: '4px solid #3b82f6'
             }}>
-              <p style={{ margin: 0 }}>{article.summary}</p>
+              <p style={{ margin: 0 }}>{decodeHtmlEntities(article.summary)}</p>
             </div>
           )}
 
@@ -758,6 +766,7 @@ export default function ArticleClient({ id }) {
             Read Full Article on {getSourceName(article.source_url)} →
           </a>
         </div>
+        )}
 
         {/* Related Articles Section */}
         <div>
@@ -872,7 +881,7 @@ export default function ArticleClient({ id }) {
                               margin: "0 0 10px 0",
                             }}
                           >
-                            {item.summary}
+                            {decodeHtmlEntities(item.summary)}
                           </p>
                         )}
 
