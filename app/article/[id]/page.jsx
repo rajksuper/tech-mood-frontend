@@ -32,6 +32,25 @@ function getTimeAgo(publishedAt) {
   return "";
 }
 
+// Share functions
+function shareOnTwitter(article) {
+  const url = encodeURIComponent(`https://techsentiments.com/article/${article.id}`);
+  const text = encodeURIComponent(`${article.title}`);
+  window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, "_blank");
+}
+
+function shareOnLinkedIn(article) {
+  const url = encodeURIComponent(`https://techsentiments.com/article/${article.id}`);
+  window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank");
+}
+
+function copyLink(article, setCopiedId) {
+  const url = `https://techsentiments.com/article/${article.id}`;
+  navigator.clipboard.writeText(url);
+  setCopiedId(article.id);
+  setTimeout(() => setCopiedId(null), 2000);
+}
+
 export default function ArticlePage() {
   const router = useRouter();
   const { id } = useParams();
@@ -42,6 +61,9 @@ export default function ArticlePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isMobile, setIsMobile] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [bookmarks, setBookmarks] = useState([]);
+  const [copiedId, setCopiedId] = useState(null);
 
   // Detect mobile
   useEffect(() => {
@@ -50,6 +72,25 @@ export default function ArticlePage() {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Load bookmarks from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("bookmarks");
+    if (saved) setBookmarks(JSON.parse(saved));
+  }, []);
+
+  // Toggle bookmark
+  const toggleBookmark = (articleToBookmark) => {
+    const isBookmarked = bookmarks.some((b) => b.id === articleToBookmark.id);
+    let newBookmarks;
+    if (isBookmarked) {
+      newBookmarks = bookmarks.filter((b) => b.id !== articleToBookmark.id);
+    } else {
+      newBookmarks = [...bookmarks, articleToBookmark];
+    }
+    setBookmarks(newBookmarks);
+    localStorage.setItem("bookmarks", JSON.stringify(newBookmarks));
+  };
 
   // Fetch main article
   useEffect(() => {
@@ -77,8 +118,8 @@ export default function ArticlePage() {
     if (!article?.category) return;
     
     setRelatedLoading(true);
-    const pageNum = page - 1; // API is 0-indexed
-    const limit = 12; // 12 images + 12 text = 24 total
+    const pageNum = page - 1;
+    const limit = 12;
 
     Promise.all([
       fetch(`https://api.techsentiments.com/articles/images?page=${pageNum}&limit=${limit}&category=${encodeURIComponent(article.category)}`),
@@ -89,7 +130,6 @@ export default function ArticlePage() {
         const imageArticles = imgJson.articles || [];
         const textArticles = txtJson.articles || [];
         
-        // Interleave: img, text, img, text...
         const combined = [];
         const maxLen = Math.max(imageArticles.length, textArticles.length);
         for (let i = 0; i < maxLen; i++) {
@@ -97,12 +137,10 @@ export default function ArticlePage() {
           if (textArticles[i]) combined.push(textArticles[i]);
         }
         
-        // Filter out the current article
         const filtered = combined.filter(a => a.id !== article.id);
         
         setRelatedArticles(filtered);
         
-        // Calculate total pages
         const totalCount = Math.max(imgJson.count || 0, txtJson.count || 0);
         setTotalPages(Math.max(1, Math.ceil(totalCount / 12)));
         setRelatedLoading(false);
@@ -116,7 +154,7 @@ export default function ArticlePage() {
   const goToPage = (page) => {
     setCurrentPage(page);
     fetchRelatedArticles(page);
-    window.scrollTo({ top: 600, behavior: 'smooth' });
+    window.scrollTo({ top: 800, behavior: 'smooth' });
   };
 
   const nextPage = () => {
@@ -127,11 +165,33 @@ export default function ArticlePage() {
     if (currentPage > 1) goToPage(currentPage - 1);
   };
 
+  // Handle search
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   // Sentiment badge color
   const getSentimentColor = (label) => {
     if (label === 'positive') return '#22c55e';
     if (label === 'negative') return '#ef4444';
     return '#64748b';
+  };
+
+  // Sentiment badge background
+  const getSentimentBg = (label) => {
+    if (label === 'positive') return '#dcfce7';
+    if (label === 'negative') return '#fee2e2';
+    return '#fef3c7';
+  };
+
+  // Sentiment badge text color
+  const getSentimentText = (label) => {
+    if (label === 'positive') return '#166534';
+    if (label === 'negative') return '#991b1b';
+    return '#92400e';
   };
 
   if (loading) {
@@ -174,7 +234,7 @@ export default function ArticlePage() {
             fontSize: '14px'
           }}
         >
-          ← Back to Home
+          Go to Home
         </button>
       </div>
     );
@@ -186,28 +246,90 @@ export default function ArticlePage() {
       minHeight: '100vh',
       paddingBottom: '40px'
     }}>
-      {/* Header with back button */}
+      {/* Header with logo and search bar */}
       <div style={{
         padding: isMobile ? '15px' : '20px 40px',
         borderBottom: isMobile ? '1px solid #333' : '1px solid #e0e0e0',
-        background: isMobile ? '#1a1a1a' : '#f9f9f9'
+        background: isMobile ? '#1a1a1a' : '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '20px',
+        flexWrap: 'wrap'
       }}>
-        <button
+        {/* Logo - clicks to home */}
+        <div
           onClick={() => router.push('/')}
           style={{
-            background: 'transparent',
-            border: 'none',
-            color: isMobile ? '#4da3ff' : '#1a0dab',
-            cursor: 'pointer',
-            fontSize: '14px',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            padding: 0
+            gap: '10px',
+            cursor: 'pointer'
           }}
         >
-          ← Back to Tech Sentiments
-        </button>
+          <span style={{ fontSize: '24px' }}>🤖</span>
+          <span style={{
+            fontSize: isMobile ? '18px' : '22px',
+            fontWeight: '700',
+            color: isMobile ? '#ffffff' : '#1a1a1a'
+          }}>
+            Tech Sentiments
+          </span>
+        </div>
+
+        {/* Search bar */}
+        <form onSubmit={handleSearch} style={{
+          display: 'flex',
+          flex: '1',
+          maxWidth: '500px',
+          minWidth: '200px'
+        }}>
+          <input
+            type="text"
+            placeholder="Search articles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              flex: '1',
+              padding: '10px 15px',
+              border: isMobile ? '1px solid #444' : '1px solid #ddd',
+              borderRadius: '25px 0 0 25px',
+              fontSize: '14px',
+              outline: 'none',
+              background: isMobile ? '#2a2a2a' : '#f5f5f5',
+              color: isMobile ? '#fff' : '#333'
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              padding: '10px 20px',
+              background: '#3b82f6',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0 25px 25px 0',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔍
+          </button>
+        </form>
+
+        {/* Bookmarks count */}
+        <div
+          onClick={() => router.push('/?bookmarks=true')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            cursor: 'pointer',
+            color: isMobile ? '#f59e0b' : '#f59e0b'
+          }}
+        >
+          <span style={{ fontSize: '20px' }}>🔖</span>
+          <span style={{ fontWeight: '600' }}>{bookmarks.length}</span>
+        </div>
       </div>
 
       {/* Main Article */}
@@ -275,6 +397,22 @@ export default function ArticlePage() {
           />
         )}
 
+        {/* Full Summary */}
+        {article.summary && (
+          <div style={{
+            fontSize: '16px',
+            lineHeight: '1.8',
+            marginBottom: '30px',
+            color: isMobile ? '#e0e0e0' : '#333',
+            background: isMobile ? '#1a1a1a' : '#f9f9f9',
+            padding: '20px',
+            borderRadius: '12px',
+            borderLeft: '4px solid #3b82f6'
+          }}>
+            <p style={{ margin: 0 }}>{article.summary}</p>
+          </div>
+        )}
+
         {/* Sentiment Analysis */}
         <div style={{
           background: isMobile ? '#1a1a1a' : '#f9f9f9',
@@ -320,18 +458,6 @@ export default function ArticlePage() {
           )}
         </div>
 
-        {/* Summary */}
-        {article.summary && (
-          <div style={{
-            fontSize: '16px',
-            lineHeight: '1.7',
-            marginBottom: '30px',
-            color: isMobile ? '#e0e0e0' : '#333'
-          }}>
-            <p>{article.summary}</p>
-          </div>
-        )}
-
         {/* Read Full Article Button */}
         <a
           href={article.source_url}
@@ -364,10 +490,10 @@ export default function ArticlePage() {
         {/* Related Articles Section */}
         <div>
           <h2 style={{
-            fontSize: isMobile ? '20px' : '24px',
-            fontWeight: '700',
+            fontSize: isMobile ? '18px' : '20px',
+            fontWeight: '600',
             marginBottom: '25px',
-            color: isMobile ? '#ffffff' : '#1a1a1a'
+            color: isMobile ? '#888' : '#666'
           }}>
             More from {article.category}
           </h2>
@@ -382,83 +508,236 @@ export default function ArticlePage() {
             </div>
           ) : (
             <>
-              {/* Related Articles Grid */}
+              {/* Related Articles - Search Results Style */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(350px, 1fr))',
-                gap: isMobile ? '15px' : '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
                 marginBottom: '40px'
               }}>
-                {relatedArticles.map((related) => (
-                  <a
-                    key={related.id}
-                    href={`/article/${related.id}`}
-                    style={{
-                      background: isMobile ? '#1a1a1a' : '#f9f9f9',
-                      border: isMobile ? '1px solid #333' : '1px solid #e0e0e0',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      textDecoration: 'none',
-                      color: 'inherit',
-                      display: 'block',
-                      transition: 'transform 0.2s, box-shadow 0.2s'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    {related.image_url && (
-                      <img
-                        src={related.image_url}
-                        alt={related.title}
-                        style={{
-                          width: '100%',
-                          height: '180px',
-                          objectFit: 'cover'
-                        }}
-                      />
-                    )}
-                    <div style={{ padding: '15px' }}>
-                      <div style={{
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        lineHeight: '1.4',
-                        marginBottom: '8px',
-                        color: isMobile ? '#ffffff' : '#1a1a1a'
-                      }}>
-                        {related.title}
-                      </div>
-                      <div style={{
+                {relatedArticles.map((related) => {
+                  const isBookmarked = bookmarks.some((b) => b.id === related.id);
+                  
+                  return (
+                    <div
+                      key={related.id}
+                      style={{
+                        background: isMobile ? '#1a1a1a' : '#fffbeb',
+                        border: isMobile ? '1px solid #333' : '1px solid #fde68a',
+                        borderRadius: '12px',
+                        padding: '15px',
                         display: 'flex',
-                        gap: '10px',
-                        alignItems: 'center',
-                        fontSize: '12px',
-                        color: isMobile ? '#888' : '#666'
-                      }}>
-                        <span>{getSourceName(related.source_url)}</span>
-                        {related.published_at && (
-                          <>
-                            <span>•</span>
-                            <span>{getTimeAgo(related.published_at)}</span>
-                          </>
+                        gap: '15px',
+                        alignItems: 'flex-start',
+                        transition: 'box-shadow 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      {/* Image */}
+                      {related.image_url ? (
+                        <a href={`/article/${related.id}`} style={{ flexShrink: 0 }}>
+                          <img
+                            src={related.image_url}
+                            alt={related.title}
+                            style={{
+                              width: isMobile ? '80px' : '120px',
+                              height: isMobile ? '80px' : '90px',
+                              objectFit: 'cover',
+                              borderRadius: '8px'
+                            }}
+                          />
+                        </a>
+                      ) : (
+                        <a
+                          href={`/article/${related.id}`}
+                          style={{
+                            width: isMobile ? '80px' : '120px',
+                            height: isMobile ? '80px' : '90px',
+                            background: '#fde68a',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            textDecoration: 'none'
+                          }}
+                        >
+                          <span style={{
+                            fontSize: '24px',
+                            fontWeight: '700',
+                            color: '#d97706'
+                          }}>
+                            {getSourceName(related.source_url).charAt(0).toUpperCase()}
+                          </span>
+                        </a>
+                      )}
+
+                      {/* Content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Title */}
+                        <a
+                          href={`/article/${related.id}`}
+                          style={{
+                            fontSize: isMobile ? '15px' : '17px',
+                            fontWeight: '600',
+                            lineHeight: '1.4',
+                            color: '#1a0dab',
+                            textDecoration: 'none',
+                            display: 'block',
+                            marginBottom: '8px'
+                          }}
+                        >
+                          {related.title}
+                        </a>
+
+                        {/* Summary */}
+                        {related.summary && (
+                          <p style={{
+                            fontSize: '13px',
+                            lineHeight: '1.5',
+                            color: isMobile ? '#aaa' : '#555',
+                            marginBottom: '10px',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            margin: '0 0 10px 0'
+                          }}>
+                            {related.summary}
+                          </p>
                         )}
-                        {related.sentiment_label && (
-                          <>
-                            <span>•</span>
-                            <span style={{ color: getSentimentColor(related.sentiment_label) }}>
-                              {related.sentiment_label === 'positive' ? '📈' : related.sentiment_label === 'negative' ? '📉' : '➡️'}
-                            </span>
-                          </>
-                        )}
+
+                        {/* Meta row: source, time, sentiment badge, category */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          flexWrap: 'wrap',
+                          fontSize: '12px',
+                          marginBottom: '10px'
+                        }}>
+                          <span style={{ color: isMobile ? '#888' : '#666' }}>
+                            {getSourceName(related.source_url)}
+                          </span>
+                          {related.published_at && (
+                            <>
+                              <span style={{ color: isMobile ? '#666' : '#999' }}>•</span>
+                              <span style={{ color: isMobile ? '#888' : '#666' }}>
+                                {getTimeAgo(related.published_at)}
+                              </span>
+                            </>
+                          )}
+                          {related.sentiment_label && (
+                            <>
+                              <span style={{ color: isMobile ? '#666' : '#999' }}>•</span>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                textTransform: 'uppercase',
+                                background: getSentimentBg(related.sentiment_label),
+                                color: getSentimentText(related.sentiment_label)
+                              }}>
+                                {related.sentiment_label}
+                              </span>
+                            </>
+                          )}
+                          {related.category && (
+                            <>
+                              <span style={{ color: isMobile ? '#666' : '#999' }}>•</span>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                background: isMobile ? '#2a2a2a' : '#e5e7eb',
+                                color: isMobile ? '#aaa' : '#4b5563'
+                              }}>
+                                {related.category}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Share icons and bookmark */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          {/* Twitter/X */}
+                          <button
+                            onClick={() => shareOnTwitter(related)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              fontSize: '16px',
+                              color: isMobile ? '#888' : '#666'
+                            }}
+                            title="Share on X"
+                          >
+                            𝕏
+                          </button>
+
+                          {/* LinkedIn */}
+                          <button
+                            onClick={() => shareOnLinkedIn(related)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              fontSize: '14px',
+                              color: isMobile ? '#888' : '#0077b5'
+                            }}
+                            title="Share on LinkedIn"
+                          >
+                            in
+                          </button>
+
+                          {/* Copy link */}
+                          <button
+                            onClick={() => copyLink(related, setCopiedId)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              fontSize: '14px',
+                              color: copiedId === related.id ? '#22c55e' : (isMobile ? '#888' : '#666')
+                            }}
+                            title="Copy link"
+                          >
+                            {copiedId === related.id ? '✓' : '📋'}
+                          </button>
+
+                          {/* Bookmark */}
+                          <button
+                            onClick={() => toggleBookmark(related)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              fontSize: '16px',
+                              color: isBookmarked ? '#f59e0b' : (isMobile ? '#888' : '#666')
+                            }}
+                            title={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                          >
+                            {isBookmarked ? '🔖' : '🏷️'}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </a>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Pagination */}
