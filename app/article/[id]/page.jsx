@@ -2,8 +2,10 @@ import ArticleClient from "./ArticleClient";
 
 // Dynamic metadata for OG tags (Twitter/LinkedIn previews)
 export async function generateMetadata({ params }) {
+  const { id } = await params;
+  
   try {
-    const res = await fetch(`https://api.techsentiments.com/article/${params.id}`, {
+    const res = await fetch(`https://api.techsentiments.com/article/${id}`, {
       cache: 'no-store'
     });
     const json = await res.json();
@@ -31,7 +33,7 @@ export async function generateMetadata({ params }) {
       openGraph: {
         title: article.title,
         description: article.summary || article.title,
-        url: `https://techsentiments.com/article/${params.id}`,
+        url: `https://techsentiments.com/article/${id}`,
         siteName: "Tech Sentiments",
         type: "article",
         images: article.image_url ? [
@@ -64,6 +66,7 @@ export async function generateMetadata({ params }) {
   }
 }
 
-export default function ArticlePage({ params }) {
-  return <ArticleClient id={params.id} />;
+export default async function ArticlePage({ params }) {
+  const { id } = await params;
+  return <ArticleClient id={id} />;
 }
