@@ -1504,7 +1504,7 @@ export default function Home() {
         marginTop: "20px",
       }}
     >
-        🚀 Launched on Product Hunt — Top 15 Product of the Day
+        🚀 Contact: mail@techsentiments.com © 2025 TechSentiments 
         </p>
     <p
       style={{
@@ -1513,7 +1513,7 @@ export default function Home() {
         marginTop: "20px",
       }}
     >
-      Contact: mail@techsentiments.com © 2025 TechSentiments • No spam, unsubscribe anytime
+      No Spam • UnSubscribe anytime
     </p>
   </div>
 </footer>
