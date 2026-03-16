@@ -1504,7 +1504,7 @@ export default function Home() {
         marginTop: "20px",
       }}
     >
-        🚀 Contact: mail@techsentiments.com © 2025 TechSentiments 
+        🚀 Contact: mail@techsentiments.com   No Spam • UnSubscribe anytime
         </p>
     <p
       style={{
@@ -1513,7 +1513,7 @@ export default function Home() {
         marginTop: "20px",
       }}
     >
-      No Spam • UnSubscribe anytime
+      © 2025 TechSentiments 
     </p>
   </div>
 </footer>
