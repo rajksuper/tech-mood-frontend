@@ -35,9 +35,7 @@ export const metadata = {
     description: "Real-time tech news with AI sentiment analysis. Track Bitcoin, Tesla, Nvidia, OpenAI and more.",
     images: ["https://techsentiments.com/ts-logo.png"],
   },
-  alternates: {
-    canonical: "https://techsentiments.com",
-  },
+  
 };
 
 export default function RootLayout({ children }) {
