@@ -295,9 +295,9 @@ export default function Home() {
       .then(([imgJson, txtJson]) => {
         const imageCount = imgJson.count || 0;
         const textCount = txtJson.count || 0;
-        // Use combined total for pagination
-        const totalCount = imageCount + textCount;
-        const pages = Math.max(1, Math.ceil(totalCount / 24));
+        // Use the larger count for pagination (whichever has more articles)
+        const maxCount = Math.max(imageCount, textCount);
+        const pages = Math.max(1, Math.ceil(maxCount / 12));
         setTotalPages(pages);
       })
       .catch(() => setTotalPages(1));
@@ -347,7 +347,7 @@ export default function Home() {
     
     const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
     const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
-    const limit = 12; // Always 12 images + 12 text = 24 articles
+    const limit = 24; // fetch 24 from each endpoint
 
     // Fetch both endpoints in parallel
     Promise.all([
@@ -356,9 +356,16 @@ export default function Home() {
     ])
       .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
       .then(([imgJson, txtJson]) => {
+        // Merge both into one flat list sorted by published_at
+        const allArticles = [
+          ...(imgJson.articles || []),
+          ...(txtJson.articles || [])
+        ].sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
+         .slice(0, 24);
+
         const combined = {
-          images: imgJson.articles || [],
-          text: txtJson.articles || []
+          images: allArticles.filter(a => a.image_url),
+          text: allArticles.filter(a => !a.image_url)
         };
         setPageCache(prev => ({ ...prev, [cacheKey]: combined }));
         processArticles(combined, mobileView);
