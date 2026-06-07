@@ -173,7 +173,7 @@ export default function Home() {
 
     const timer = setTimeout(() => {
       setIsLoadingAutocomplete(true);
-      fetch(`/api/autocomplete?q=${encodeURIComponent(searchQuery)}`)
+      fetch(`https://api.techsentiments.com/autocomplete?q=${encodeURIComponent(searchQuery)}`)
         .then(res => res.json())
         .then(data => {
           setAutocompleteResults(data.suggestions || []);
@@ -273,7 +273,7 @@ export default function Home() {
 
   // Fetch categories
   useEffect(() => {
-    fetch("/api/categories")
+    fetch("https://api.techsentiments.com/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
@@ -287,7 +287,7 @@ export default function Home() {
 
     if (selectedSource) {
       // When filtering by source, use count endpoint for accurate total
-      fetch(`/api/articles/count?${categoryParam.slice(1)}${sourceParam ? '&' + sourceParam.slice(1) : ''}`)
+      fetch(`https://api.techsentiments.com/articles/count?${categoryParam.slice(1)}${sourceParam ? '&' + sourceParam.slice(1) : ''}`)
         .then(res => res.json())
         .then(json => {
           const pages = Math.max(1, Math.ceil((json.count || 0) / 24));
@@ -297,8 +297,8 @@ export default function Home() {
     } else {
       // Normal mode: use both image + text counts combined
       Promise.all([
-        fetch(`/api/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
-        fetch(`/api/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
+        fetch(`https://api.techsentiments.com/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
+        fetch(`https://api.techsentiments.com/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
       ])
         .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
         .then(([imgJson, txtJson]) => {
@@ -324,8 +324,8 @@ export default function Home() {
 
         // Prefetch both endpoints in parallel
         Promise.all([
-          fetch(`/api/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
-          fetch(`/api/articles/text?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`)
+          fetch(`https://api.techsentiments.com/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
+          fetch(`https://api.techsentiments.com/articles/text?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`)
         ])
           .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
           .then(([imgJson, txtJson]) => {
@@ -364,7 +364,7 @@ export default function Home() {
 
     if (source) {
       // When source is selected - use single paginated endpoint
-      fetch(`/api/articles/page/${pageNum}?limit=${limit}${categoryParam}${sourceParam}`)
+      fetch(`https://api.techsentiments.com/articles/page/${pageNum}?limit=${limit}${categoryParam}${sourceParam}`)
         .then(res => res.json())
         .then(json => {
           const articles = json.articles || [];
@@ -379,8 +379,8 @@ export default function Home() {
     } else {
       // Normal mode - fetch images and text separately
       Promise.all([
-        fetch(`/api/articles/images?page=${pageNum}&limit=${limit}${categoryParam}`),
-        fetch(`/api/articles/text?page=${pageNum}&limit=${limit}${categoryParam}`)
+        fetch(`https://api.techsentiments.com/articles/images?page=${pageNum}&limit=${limit}${categoryParam}`),
+        fetch(`https://api.techsentiments.com/articles/text?page=${pageNum}&limit=${limit}${categoryParam}`)
       ])
         .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
         .then(([imgJson, txtJson]) => {
@@ -1446,7 +1446,7 @@ export default function Home() {
         button.disabled = true;
 
         try {
-          const res = await fetch("/api/subscribe", {
+          const res = await fetch("https://api.techsentiments.com/subscribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
