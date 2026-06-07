@@ -339,9 +339,9 @@ export default function Home() {
   }, [loading, currentPage, totalPages, selectedCategory, selectedSource]);
 
   // Load articles
-  const loadArticles = (mobileView) => {
-    const pageNum = currentPage - 1; // API is 0-indexed
-    const cacheKey = `${selectedCategory || 'all'}-${selectedSource || 'all'}-${pageNum}`;
+  const loadArticles = (mobileView, page = currentPage, category = selectedCategory, source = selectedSource) => {
+    const pageNum = page - 1; // API is 0-indexed
+    const cacheKey = `${category || 'all'}-${source || 'all'}-${pageNum}`;
 
     if (pageCache[cacheKey]) {
       processArticles(pageCache[cacheKey], mobileView);
@@ -349,10 +349,10 @@ export default function Home() {
     }
 
     setLoading(true);
-    
-    const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
-    const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
-    const limit = 24; // fetch 24 from each endpoint
+
+    const categoryParam = category ? `&category=${encodeURIComponent(category)}` : "";
+    const sourceParam = source ? `&source=${encodeURIComponent(source)}` : "";
+    const limit = 24;
 
     // Fetch both endpoints in parallel
     Promise.all([
@@ -361,7 +361,6 @@ export default function Home() {
     ])
       .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
       .then(([imgJson, txtJson]) => {
-        // Merge both into one flat list sorted by published_at
         const allArticles = [
           ...(imgJson.articles || []),
           ...(txtJson.articles || [])
@@ -423,7 +422,7 @@ export default function Home() {
   // Load articles when page or category or source or mobile state changes
   useEffect(() => {
     if (hasMounted) {
-      loadArticles(isMobile);
+      loadArticles(isMobile, currentPage, selectedCategory, selectedSource);
       calculateTotalPages();
     }
   }, [currentPage, selectedCategory, selectedSource, hasMounted, isMobile]);
