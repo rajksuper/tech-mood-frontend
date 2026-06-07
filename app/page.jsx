@@ -312,8 +312,8 @@ export default function Home() {
       if (!pageCache[cacheKey]) {
         const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
         const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
-        const limit = 12; // Always 12 images + 12 text = 24 articles
-        
+        const limit = 24;
+
         // Prefetch both endpoints in parallel
         Promise.all([
           fetch(`https://api.techsentiments.com/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
@@ -321,9 +321,14 @@ export default function Home() {
         ])
           .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
           .then(([imgJson, txtJson]) => {
+            const allArticles = [
+              ...(imgJson.articles || []),
+              ...(txtJson.articles || [])
+            ].sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
+             .slice(0, 24);
             const combined = {
-              images: imgJson.articles || [],
-              text: txtJson.articles || []
+              images: allArticles.filter(a => a.image_url),
+              text: allArticles.filter(a => !a.image_url)
             };
             setPageCache(prev => ({ ...prev, [cacheKey]: combined }));
             console.log(`Prefetched page ${currentPage + 1}`);
