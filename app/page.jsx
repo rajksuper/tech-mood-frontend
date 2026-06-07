@@ -295,9 +295,9 @@ export default function Home() {
       .then(([imgJson, txtJson]) => {
         const imageCount = imgJson.count || 0;
         const textCount = txtJson.count || 0;
-        // Use the larger count for pagination (whichever has more articles)
-        const maxCount = Math.max(imageCount, textCount);
-        const pages = Math.max(1, Math.ceil(maxCount / 12));
+        // Use combined total for pagination
+        const totalCount = imageCount + textCount;
+        const pages = Math.max(1, Math.ceil(totalCount / 24));
         setTotalPages(pages);
       })
       .catch(() => setTotalPages(1));
