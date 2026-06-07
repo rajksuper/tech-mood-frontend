@@ -173,7 +173,7 @@ export default function Home() {
 
     const timer = setTimeout(() => {
       setIsLoadingAutocomplete(true);
-      fetch(`https://api.techsentiments.com/autocomplete?q=${encodeURIComponent(searchQuery)}`)
+      fetch(`/api/autocomplete?q=${encodeURIComponent(searchQuery)}`)
         .then(res => res.json())
         .then(data => {
           setAutocompleteResults(data.suggestions || []);
@@ -273,7 +273,7 @@ export default function Home() {
 
   // Fetch categories
   useEffect(() => {
-    fetch("https://api.techsentiments.com/categories")
+    fetch("/api/categories")
       .then((res) => res.json())
       .then((json) => setCategories(json.categories || []))
       .catch(() => {});
@@ -1446,7 +1446,7 @@ export default function Home() {
         button.disabled = true;
 
         try {
-          const res = await fetch("https://api.techsentiments.com/subscribe", {
+          const res = await fetch("/api/subscribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
