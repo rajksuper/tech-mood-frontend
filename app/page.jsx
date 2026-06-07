@@ -288,8 +288,8 @@ export default function Home() {
     
     // Fetch both counts in parallel
     Promise.all([
-      fetch(`https://api.techsentiments.com/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
-      fetch(`https://api.techsentiments.com/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
+      fetch(`/api/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
+      fetch(`/api/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
     ])
       .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
       .then(([imgJson, txtJson]) => {
@@ -316,8 +316,8 @@ export default function Home() {
 
         // Prefetch both endpoints in parallel
         Promise.all([
-          fetch(`https://api.techsentiments.com/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
-          fetch(`https://api.techsentiments.com/articles/text?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`)
+          fetch(`/api/articles/images?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`),
+          fetch(`/api/articles/text?page=${nextPage}&limit=${limit}${categoryParam}${sourceParam}`)
         ])
           .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
           .then(([imgJson, txtJson]) => {
@@ -356,8 +356,8 @@ export default function Home() {
 
     // Fetch both endpoints in parallel
     Promise.all([
-      fetch(`https://api.techsentiments.com/articles/images?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`),
-      fetch(`https://api.techsentiments.com/articles/text?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`)
+      fetch(`/api/articles/images?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`),
+      fetch(`/api/articles/text?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`)
     ])
       .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
       .then(([imgJson, txtJson]) => {
