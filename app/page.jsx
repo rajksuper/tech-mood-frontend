@@ -282,25 +282,33 @@ export default function Home() {
   }, []);
 
   const calculateTotalPages = () => {
-    // Get count from both endpoints (24 articles per page = 12 images + 12 text)
     const categoryParam = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
     const sourceParam = selectedSource ? `&source=${encodeURIComponent(selectedSource)}` : "";
-    
-    // Fetch both counts in parallel
-    Promise.all([
-      fetch(`/api/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
-      fetch(`/api/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
-    ])
-      .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
-      .then(([imgJson, txtJson]) => {
-        const imageCount = imgJson.count || 0;
-        const textCount = txtJson.count || 0;
-        // Use the larger count for pagination (whichever has more articles)
-        const maxCount = Math.max(imageCount, textCount);
-        const pages = Math.max(1, Math.ceil(maxCount / 24));
-        setTotalPages(pages);
-      })
-      .catch(() => setTotalPages(1));
+
+    if (selectedSource) {
+      // When filtering by source, use count endpoint for accurate total
+      fetch(`/api/articles/count?${categoryParam.slice(1)}${sourceParam ? '&' + sourceParam.slice(1) : ''}`)
+        .then(res => res.json())
+        .then(json => {
+          const pages = Math.max(1, Math.ceil((json.count || 0) / 24));
+          setTotalPages(pages);
+        })
+        .catch(() => setTotalPages(1));
+    } else {
+      // Normal mode: use both image + text counts combined
+      Promise.all([
+        fetch(`/api/articles/images?page=0&limit=1${categoryParam}${sourceParam}`),
+        fetch(`/api/articles/text?page=0&limit=1${categoryParam}${sourceParam}`)
+      ])
+        .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
+        .then(([imgJson, txtJson]) => {
+          const imageCount = imgJson.count || 0;
+          const textCount = txtJson.count || 0;
+          const pages = Math.max(1, Math.ceil((imageCount + textCount) / 24));
+          setTotalPages(pages);
+        })
+        .catch(() => setTotalPages(1));
+    }
   };
 
   // Prefetch next page in background
@@ -354,27 +362,37 @@ export default function Home() {
     const sourceParam = source ? `&source=${encodeURIComponent(source)}` : "";
     const limit = 24;
 
-    // Fetch both endpoints in parallel
-    Promise.all([
-      fetch(`/api/articles/images?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`),
-      fetch(`/api/articles/text?page=${pageNum}&limit=${limit}${categoryParam}${sourceParam}`)
-    ])
-      .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
-      .then(([imgJson, txtJson]) => {
-        const allArticles = [
-          ...(imgJson.articles || []),
-          ...(txtJson.articles || [])
-        ].sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
-         .slice(0, 24);
-
-        const combined = {
-          images: allArticles.filter(a => a.image_url),
-          text: allArticles.filter(a => !a.image_url)
-        };
-        setPageCache(prev => ({ ...prev, [cacheKey]: combined }));
-        processArticles(combined, mobileView);
-      })
-      .catch(() => setLoading(false));
+    if (source) {
+      // When source is selected - use single paginated endpoint
+      fetch(`/api/articles/page/${pageNum}?limit=${limit}${categoryParam}${sourceParam}`)
+        .then(res => res.json())
+        .then(json => {
+          const articles = json.articles || [];
+          const combined = {
+            images: articles.filter(a => a.image_url),
+            text: articles.filter(a => !a.image_url)
+          };
+          setPageCache(prev => ({ ...prev, [cacheKey]: combined }));
+          processArticles(combined, mobileView);
+        })
+        .catch(() => setLoading(false));
+    } else {
+      // Normal mode - fetch images and text separately
+      Promise.all([
+        fetch(`/api/articles/images?page=${pageNum}&limit=${limit}${categoryParam}`),
+        fetch(`/api/articles/text?page=${pageNum}&limit=${limit}${categoryParam}`)
+      ])
+        .then(([imgRes, txtRes]) => Promise.all([imgRes.json(), txtRes.json()]))
+        .then(([imgJson, txtJson]) => {
+          const combined = {
+            images: imgJson.articles || [],
+            text: txtJson.articles || []
+          };
+          setPageCache(prev => ({ ...prev, [cacheKey]: combined }));
+          processArticles(combined, mobileView);
+        })
+        .catch(() => setLoading(false));
+    }
   };
 
   // Process articles - alternating image/text
