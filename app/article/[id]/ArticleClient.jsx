@@ -55,21 +55,33 @@ function getCategoryHashtag(category) {
 }
 
 // Share functions with hashtags
+function getArticleUrl(article) {
+  if (article.slug && article.published_at) {
+    const date = new Date(article.published_at);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `https://techsentiments.com/article/${year}/${month}/${day}/${article.slug}`;
+  }
+  return `https://techsentiments.com/article/${article.id}`;
+}
+
 function shareOnTwitter(article) {
-  const url = `https://techsentiments.com/article/${article.id}`;
+  const url = getArticleUrl(article);
   const hashtags = getCategoryHashtag(article.category);
   const text = encodeURIComponent(`${article.title}\n\n${hashtags}\n\n${url}`);
   window.open(`https://twitter.com/intent/tweet?text=${text}`, "_blank");
 }
 
 function shareOnLinkedIn(article) {
-  const url = encodeURIComponent(`https://techsentiments.com/article/${article.id}`);
+  const url = encodeURIComponent(getArticleUrl(article));
   window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank");
 }
 
 function copyLink(article, setCopiedId) {
   const hashtags = getCategoryHashtag(article.category);
-  const text = `${article.title}\n\n${hashtags}\n\nhttps://techsentiments.com/article/${article.id}`;
+  const url = getArticleUrl(article);
+  const text = `${article.title}\n\n${hashtags}\n\n${url}`;
   navigator.clipboard.writeText(text);
   setCopiedId(article.id);
   setTimeout(() => setCopiedId(null), 2000);
@@ -816,7 +828,7 @@ export default function ArticleClient({ id }) {
                     >
                       {/* Image or Placeholder */}
                       {item.image_url ? (
-                        <Link href={`/article/${item.id}`} style={{ flexShrink: 0 }}>
+                        <Link href={item.slug && item.published_at ? (() => { const d = new Date(item.published_at); return `/article/${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${item.slug}`; })() : `/article/${item.id}`} style={{ flexShrink: 0 }}>
                           <img
                             src={item.image_url}
                             alt="thumbnail"
@@ -830,7 +842,7 @@ export default function ArticleClient({ id }) {
                         </Link>
                       ) : (
                         <Link
-                          href={`/article/${item.id}`}
+                          href={item.slug && item.published_at ? (() => { const d = new Date(item.published_at); return `/article/${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${item.slug}`; })() : `/article/${item.id}`}
                           style={{
                             width: isMobile ? "80px" : "140px",
                             height: isMobile ? "60px" : "90px",
@@ -853,7 +865,7 @@ export default function ArticleClient({ id }) {
                       {/* Content */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <Link
-                          href={`/article/${item.id}`}
+                          href={item.slug && item.published_at ? (() => { const d = new Date(item.published_at); return `/article/${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${item.slug}`; })() : `/article/${item.id}`}
                           style={{
                             color: isMobile ? "#4da3ff" : "#1a0dab",
                             textDecoration: "none",
