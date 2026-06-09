@@ -725,6 +725,32 @@ export default function ArticleClient({ fetchUrl }) {
             </div>
           )}
 
+          {/* AI Analysis */}
+          {article.ai_summary && (
+            <div style={{
+              fontSize: '15px',
+              lineHeight: '1.7',
+              marginBottom: '20px',
+              color: isMobile ? '#b0c4de' : '#1e3a5f',
+              padding: '15px',
+              background: isMobile ? '#0d1f33' : '#e8f0fb',
+              borderRadius: '8px',
+              borderLeft: '4px solid #60a5fa',
+            }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: '700',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                color: isMobile ? '#60a5fa' : '#2563eb',
+                marginBottom: '8px',
+              }}>
+                🤖 AI Analysis
+              </div>
+              <p style={{ margin: 0 }}>{decodeHtmlEntities(article.ai_summary)}</p>
+            </div>
+          )}
+
           {/* Sentiment Analysis Box */}
           <div style={{
             background: isMobile ? '#0d0d0d' : '#f8f9fa',
