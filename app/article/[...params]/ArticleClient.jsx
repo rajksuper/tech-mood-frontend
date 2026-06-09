@@ -87,7 +87,7 @@ function copyLink(article, setCopiedId) {
   setTimeout(() => setCopiedId(null), 2000);
 }
 
-export default function ArticleClientSlug({ slug }) {
+export default function ArticleClient({ fetchUrl }) {
   const router = useRouter();
   const [article, setArticle] = useState(null);
   const [relatedArticles, setRelatedArticles] = useState([]);
@@ -166,7 +166,7 @@ export default function ArticleClientSlug({ slug }) {
   // Fetch main article
   useEffect(() => {
     setLoading(true);
-    fetch(`https://api.techsentiments.com/article/slug/${slug}`)
+    fetch(fetchUrl)
       .then((res) => res.json())
       .then((json) => {
         setArticle(json.data);
@@ -176,7 +176,7 @@ export default function ArticleClientSlug({ slug }) {
         console.error(err);
         setLoading(false);
       });
-  }, [slug]);
+  }, [fetchUrl]);
 
   // Fetch related articles when article loads
   useEffect(() => {
