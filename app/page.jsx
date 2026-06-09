@@ -61,15 +61,34 @@ function getShareHashtags(category, title) {
   return tags;
 }
 
-// UPDATED SHARE FUNCTIONS FOR YOUR MAIN PAGE.JSX
-// Replace the existing share functions with these
+function getArticleUrl(article) {
+  if (article.slug && article.published_at) {
+    const d = new Date(article.published_at);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `https://techsentiments.com/article/${year}/${month}/${day}/${article.slug}`;
+  }
+  return `https://techsentiments.com/article/${article.id}`;
+}
 
-// Share to Twitter/X - NOW shares YOUR article page
+function getArticlePath(article) {
+  if (article.slug && article.published_at) {
+    const d = new Date(article.published_at);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `/article/${year}/${month}/${day}/${article.slug}`;
+  }
+  return `/article/${article.id}`;
+}
+
+// Share to Twitter/X - shares YOUR article page
 function shareToTwitter(article) {
   const hashtags = getShareHashtags(article.category, article.title);
   const text = encodeURIComponent(article.title);
-  const url = encodeURIComponent(`https://techsentiments.com/article/${article.id}`); // CHANGED
-  
+  const url = encodeURIComponent(getArticleUrl(article));
+
   window.open(
     `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`,
     '_blank',
@@ -77,10 +96,10 @@ function shareToTwitter(article) {
   );
 }
 
-// Share to LinkedIn - NOW shares YOUR article page
+// Share to LinkedIn - shares YOUR article page
 function shareToLinkedIn(article) {
-  const url = encodeURIComponent(`https://techsentiments.com/article/${article.id}`); // CHANGED
-  
+  const url = encodeURIComponent(getArticleUrl(article));
+
   window.open(
     `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
     '_blank',
@@ -88,26 +107,21 @@ function shareToLinkedIn(article) {
   );
 }
 
-// Copy formatted text - NOW includes YOUR article page link
+// Copy formatted text - includes YOUR article page link
 function copyForShare(article, setCopiedId) {
   const hashtags = getShareHashtags(article.category, article.title)
     .split(',')
     .map(tag => `#${tag}`)
     .join(' ');
-  
-  const url = `https://techsentiments.com/article/${article.id}`; // CHANGED
-  const text = `${article.title}\n\n${hashtags}\n\n${url}`; // Now uses your site URL
+
+  const url = getArticleUrl(article);
+  const text = `${article.title}\n\n${hashtags}\n\n${url}`;
   
   navigator.clipboard.writeText(text).then(() => {
     setCopiedId(article.id);
     setTimeout(() => setCopiedId(null), 2000);
   });
 }
-
-// INSTRUCTIONS:
-// 1. In your main page.jsx, find these 3 functions (around lines 64-100)
-// 2. Replace them with the versions above
-// 3. The ONLY change is: article.source_url → https://techsentiments.com/article/${article.id}
 
 export default function Home() {
   const router = useRouter();
@@ -701,9 +715,7 @@ export default function Home() {
                             }}
                           >
                             <a
-                              href={article.source_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              href={getArticlePath(article)}
                               style={{
                                 color: "#4da3ff",
                                 textDecoration: "none",
@@ -1044,9 +1056,7 @@ export default function Home() {
                           }}
                         >
                           <a
-                            href={article.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href={getArticlePath(article)}
                             style={{
                               color: "#1a0dab",
                               textDecoration: "none",
@@ -1135,7 +1145,7 @@ export default function Home() {
                 >
                   {/* Image */}
                   {hasImage && (
-                    <a href={article.source_url} target="_blank" rel="noopener noreferrer">
+                    <a href={getArticlePath(article)}>
                       <img
                         src={article.image_url}
                         alt=""
@@ -1152,9 +1162,7 @@ export default function Home() {
                   <div style={{ padding: isMobile ? "12px" : "15px" }}>
                     {/* Title */}
                     <a
-                      href={article.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={getArticlePath(article)}
                       style={{
                         color: isMobile ? "#fff" : "#1a1a1a",
                         textDecoration: "none",
