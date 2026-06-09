@@ -33,7 +33,16 @@ export async function generateMetadata({ params }) {
       openGraph: {
         title: article.title,
         description: article.summary || article.title,
-        url: `https://techsentiments.com/article/${id}`,
+        url: (() => {
+        if (article.slug && article.published_at) {
+          const d = new Date(article.published_at);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `https://techsentiments.com/article/${year}/${month}/${day}/${article.slug}`;
+        }
+        return `https://techsentiments.com/article/${id}`;
+      })(),
         siteName: "Tech Sentiments",
         type: "article",
         images: article.image_url ? [
