@@ -442,7 +442,14 @@ export default function Home() {
       }
     }
 
-    setArticles(combined);
+    const seen = new Set();
+    const deduped = combined.filter(a => {
+      if (seen.has(a.id)) return false;
+      seen.add(a.id);
+      return true;
+    });
+
+    setArticles(deduped);
     setLoading(false);
   };
 
